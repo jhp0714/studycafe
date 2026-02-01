@@ -1,0 +1,377 @@
+# V1.3
+Order.quantity/total_amount 제거
+Pass.status suspended 제거
+Seat/Locker status : available|out_of_service 로 수정
+product에 duration_days 추가
+
+## 0. 공통
+
+### Base URL
+
+- /api/v1
+
+### Auth
+
+- Authorization : Bearer <access_token>
+- 역할 : USER, ADMIN
+
+### 공통 응답 포맷
+
+- 성공
+
+```json
+{"data":{},"meta":{}}
+
+```
+
+- 실패
+
+```json
+{
+	"error":{
+		"code":"SEAT_NOT_AVAILABLE",
+		"message":"해당 좌석은 사용 중입니다.",
+		"details":{}
+		}
+}
+
+```
+
+### 공통 에러 코드(예시)
+
+- UNAUTHORIZED, FORBIDDEN
+- VALIDATION_ERROR
+- RESOURCE_NOT_FOUND
+- SEAT_NOT_AVAILABLE, LOCKER_NOT_AVAILABLE
+- PASS_NOT_ACTIVE, PASS_NOT_MATCH_RESOURCE
+- ALREADY_CHECKED_IN, NOT_CHECKED_IN
+- CONFLICT
+
+---
+
+## 1. Auth
+
+### 회원가입
+
+- POST /auth/signup
+
+```json
+{"phone":"01012345678","name":"홍길동"}
+```
+
+### 로그인
+
+- POST /auth/login
+
+```json
+{"phone":"01012345678","password":"5678"}
+```
+
+```json
+{
+	"data":{
+		"access_token":"...",
+		"refresh_token":"...",
+		"user":{"id":1234,"name":"홍길동","role":"USER"}
+		}
+}
+
+```
+
+### 토큰 재발급
+
+- POST /auth/refresh
+
+```json
+{"refresh_token":"..."}
+```
+
+### 로그아웃
+
+- POST /auth/logout
+
+## 2. Users(내 정보)
+
+### 내 정보 조회
+
+- GET /me
+
+```json
+{
+  "data": {
+    "id": 1234,
+    "name": "홍길동",
+    "phone": "01012345678",
+    "current_seat": { "id": 1234, "seat_type": "normal" },
+    "current_locker": null
+  }
+}
+
+```
+
+### 내 패스(이용권) 목록
+
+- GET /me/passes?status=active
+    - status : active|expired|cancelled
+
+### 내 주문 목록
+
+- GET /me/orders?status=created&page=1&size=20
+    - status : created|paid|canceled|expired
+
+## 3. Products
+
+### 상품 목록
+
+- GET /products?available=true&product_type=time
+    - product_type : time|flat|fixed|locker
+    - available : true|false
+
+```json
+{
+  "data": [
+    {
+      "id": 1234,
+      "name": "일반석 10시간",
+      "product_type": "time",
+      "duration_hours": 10,
+      "duration_days":""
+      "price": 50000,
+      "available": true
+    }
+  ]
+}
+```
+
+### 상품 상세
+
+- GET /products/{product_id}
+
+## 4. Seats/Lockers
+
+### 좌석 목록
+
+- GET /seats
+    - seat_type : normal|fixed
+    - status : available|out_of_service
+
+### 사물함 목록
+
+- GET /lockers
+    - status : available|out_of_service
+
+## 5. Orders/Payments/Pass
+
+### 주문 생성
+
+- POST /orders
+    - selection 규칙
+        - product_type=fixed : seat_id 필수
+        - product_type=locker : locker_id 필수
+        - product_type=time|flat : selection 없음
+
+```json
+{
+  "product_id": 1234,
+  "quantity": 1,
+  "selection": {
+    "seat_id": 1234,
+    "locker_id": null
+  }
+}
+```
+
+응답
+
+```json
+{
+  "data": {
+    "order_id": 22,
+    "order_status": "created",
+    "total_amount": 50000
+  }
+}
+```
+
+### 주문 조회
+
+- GET /orders/{order_id}
+
+### 결제 생성/확정(모의 PG)
+
+- POST /payments
+
+```json
+{
+  "order_id": 22,
+  "payment_method": "card",
+  "amount": 50000
+}
+```
+
+응답
+
+```json
+{
+  "data": {
+    "payment_id": 55,
+    "payment_status": "paid",
+    "paid_at": "2026-01-20T12:34:56Z",
+    "order": { "id": 22, "order_status": "paid" },
+    "pass": { "id": 66, "status": "active" }
+  }
+}
+```
+
+### 결제 조회
+
+- GET /payments/{payment_id}
+
+### 패스 조회
+
+- GET /passes/{pass_id}
+
+```json
+{
+  "data": {
+    "id": 66,
+    "pass_kind": "time",
+    "status": "active",
+    "remaining_hours": 8,
+    "start_at": null,
+    "end_at": null,
+    "fixed_seat_id": null,
+    "locker_id": null,
+    "product": { "id": 1234, "product_type": "time" }
+  }
+}
+
+```
+
+## 6. 이용(입실/퇴실/이동)
+
+### 입실(일반석)
+
+- POST /usage/checkin
+
+```json
+{
+  "pass_id": 1234,
+  "seat_id": 1234
+}
+```
+
+응답
+
+```json
+{
+  "data": {
+    "seat": { "id": 1234 },
+    "checked_in_at": "2026-01-20T09:00:00Z",
+    "allowed_until": "2026-01-20T21:00:00Z",
+    "policy": { "max_session_hours": 12 }
+  }
+}
+```
+
+### 입실(지정석)
+
+- POST /usage/checkin-assigned
+
+```json
+{ "pass_id": 1234 }
+```
+
+### 퇴실(수동 퇴실)
+
+- POST /usage/checkout
+
+```json
+{}
+```
+
+응답
+
+```json
+{ "data": { "checked_out_at": "2026-01-20T10:10:00Z" } }
+```
+
+### 좌석 이동
+
+- POST /usage/move-seat
+
+```json
+{ "to_seat_id": 1234 }
+```
+
+### 사물함 이동
+
+- POST /usage/move-locker
+
+```json
+{ "to_locker_id": 1234 }
+```
+
+## 7. Admin
+
+### 좌석 생성
+
+- POST /admin/seats
+
+```json
+{ "code": "A101", "seat_type": "normal", "status": "available" }
+```
+
+### 좌석 상태 변경
+
+- PATCH /admin/seats/{seat_id}
+
+```json
+{ "status": "out_of_service" }
+```
+
+### 사물함 생성/상태 변경
+
+- POST /admin/lockers
+- PATCH /admin/lockers/{locker_id}
+
+### 강제 퇴실
+
+- POST /admin/usage/force-checkout
+
+```json
+{ "user_id": 1234, "reason": "매너 위반" }
+```
+
+### 환불(관리자)
+
+- POST /admin/payments/{payment_id}/refund
+
+```json
+{ "amount": 30000, "reason": "고객 요청" }
+```
+
+응답
+
+```json
+{
+  "data": {
+    "payment_id": 55,
+    "payment_status": "refunded",
+    "refunded_amount": 30000,
+    "order_status": "canceled",
+    "pass_status": "cancelled"
+  }
+}
+```
+
+### 로그 조회
+
+- GET /admin/logs/seat-usage?user_id=&from=&to=
+- GET /admin/logs/payment?payment_id=&from=&to=
+- GET /admin/logs/admin-actions?admin_id=&from=&to=
+
+## 8. 동시성/트랜잭션 권장 규칙
+
+- 좌석/사물함 배정 관련 API(checkin, move-seat, move-locker, 지정석/사물함 상품 결제 처리)는 트랜잭션 처리 및 CONFLICT 가능
+- 결제 성공 시 Order paid → Payment paid → Pass 발행/연장을 원자적으로 처리

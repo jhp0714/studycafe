@@ -1,0 +1,232 @@
+# User
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| phone | string | UNIQUE, 로그인 ID(전화번호) |
+| password | string | 해시로 저장, phone 뒷 4자리 |
+| is_admin | bool | db에서 따로 설정 default false |
+| created_at | datetime |  |
+
+## 관계
+
+User 1:N Order
+
+User 1:N Pass
+
+User 1:N SeatUsage
+
+User 1:N Refund (admin)
+
+User 1:N AuditLog(actor)
+
+# Seat
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| seat_no | int/string | UNIQUE(표기 번호) |
+| seat_type | enum | normal, fixed |
+| operating_status | enum | available, out_of_service |
+| disabled | bool | 비활성화 여부 |
+| created_at | datetime |  |
+
+점유는 SeatUsage로 판단. Seat는 운영 상태에만 중점을 둠
+
+## 관계
+
+Seat 1:N SeatUsage
+
+# Locker
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| locker_no | int/string | UNIQUE |
+| operating_status | enum | available, out_of_service |
+| disabled | bool | 비활성화 여부 |
+| created_at | datetime |  |
+
+## 관계
+
+Locker 1:N LockerUsage
+
+# Product
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| scode | string | 표기 코드(1H, 7D 등) |
+| name | string |  |
+| product_type | enum | time, flat,fixed,locker |
+| duration_minutes | int | 시간제 전용, 그 외 null |
+| duration_days | int | flat/fixed/ locker, time은 null |
+| price | int |  |
+| is_active | bool | 판매 여부 |
+| created_at | datetime |  |
+- **UNIQUE(product_type, scode)** (같은 “7D”라도 fixed/locker가 따로 있을 수 있어서)
+- CHECK( product_type='time' ⇒ duration_minutes NOT NULL AND duration_days IS NULL )
+- CHECK( product_type IN ('flat','fixed','locker') ⇒ duration_days NOT NULL AND duration_minutes IS NULL )
+
+## 관계
+
+Product 1:N Order
+
+Product 1:N Pass
+
+# Order
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| order_no | string | UNIQUE(표기/추적용 주문번호) |
+| user_id | fk(User) | 인덱스 |
+| product_id | fk(Product) |  |
+| status | enum | created, paid, canceled, expired |
+| amount | int | 결제금액 스냅샷 |
+| created_at | datetime |  |
+
+## 관계
+
+User 1:N Order
+
+Product 1:N Order
+
+Order 1:1 Payment
+
+Order 1:1 Pass
+
+# Payment
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| order_id | fk(Order) | UNIQUE, 주문당 1결제 |
+| status | enum | ready, paid, canceled, refunded |
+| paid_at | datetime | nullable |
+| method | string | “mock” |
+| created_at | datetime |  |
+
+## 관계
+
+Order 1:1 Payment
+
+Payment 1:N Refund
+
+# Pass
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| user_id | fk(User) |  |
+| product_id | fk(Product) |  |
+| order_id | fk(Order) | UNIQUE |
+| pass_kind | enum | time, flat, fixed, locker |
+| status | enum | active, expired, canceled |
+| start_at | datetime | 1. 시간제는 첫입실 시점
+2. 하루가 넘어가는 상품은 결제 완료 시점 |
+| end_at | datetime |  |
+| fixed_seat_id | FK(Seat) | fixed 전용, 그 외 null |
+| locker_id | fk(locker) | locker 전용, 그 외 null |
+| created_at | datetime |  |
+
+**fixed/locker 이동 시**: `Pass.fixed_seat_id(or locker_id)`와 `SeatUsage.seat_id(or LockerUsage.locker_id)`를 **같은 트랜잭션에서 같이 업데이트**하고 Logs 남긴다.
+
+- CHECK(pass_kind='fixed' ⇒ fixed_seat_id NOT NULL AND locker_id IS NULL)
+- CHECK(pass_kind='locker' ⇒ locker_id NOT NULL AND fixed_seat_id IS NULL)
+- CHECK(pass_kind IN ('time','flat') ⇒ fixed_seat_id IS NULL AND locker_id IS NULL)
+
+## 관계
+
+User 1:N Pass
+
+Product 1:N Pass
+
+Order 1:1 Pass
+
+Pass 1:N SeatUsage
+
+Pass 1:N LockerUsage
+
+# SeatUsage
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| user_id | fk(User) |  |
+| pass_id | fk(Pass) | 어떤 패스를 이용하는지 |
+| seat_id | fk(Seat) |  |
+| check_in_at | datetime |  |
+| expected_end_at | datetime |  |
+| check_out_at | datetime | nullable(퇴실 전) |
+| status | enum | active, ended |
+| created_at | datetime |  |
+- **(Postgres) seat_id에 대해 status='active'는 1개만** 허용하는 *partial unique index*
+- user_id에 대해 status='active' 1개만 허용(“동시 2좌석 점유 금지” 정책이면)
+
+## 관계
+
+User 1:N SeatUsage
+
+Pass 1:N SeatUsage
+
+Seat 1:N SeatUsage
+
+# LockerUsage
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| user_id | fk(User) |  |
+| pass_id | fk(Pass) |  |
+| locker_id | fk(Locker) |  |
+| assign_at | datetime |  |
+| unassign_at | datetime | nullable |
+| status | enum | active, ended |
+| created_at | datetime |  |
+
+**(Postgres) locker_id에 대해 status='active'는 1개만** 허용하는 *partial unique index*
+
+## 관계
+
+User 1:N LockerUsage
+
+Pass 1:N LockerUsage
+
+Locker 1:N LockerUsage
+
+# Refund
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| payment_id | fk(Payment) | 인덱스 |
+| admin_user_id | fk(User) | 환불 처리자 |
+| amount | int | 부분 환불 대비 |
+| reason | string | nullable |
+| refunded_at | datetime |  |
+| created_at | datetime |  |
+
+## 관계
+
+Payment 1:N Refund
+
+User 1:N Refund(admin)
+
+# Logs
+
+| 필드 | 타입 | 제약/설명 |
+| --- | --- | --- |
+| id | pk |  |
+| actor_user_id | fk(User) | 호출한 user |
+| action | string | check_in, move_seat, refund 등 |
+| entity_type | string | SeatUsage, Pass, Payment 등 |
+| entity_id | int/string | 대상 PK |
+| payload_json | json | 변경 전/후, 사유 등 |
+| created_at | datetime |  |
+
+(entity_type, entity_id, created_at)
+
+## 관계
+
+User 1:N Logs
