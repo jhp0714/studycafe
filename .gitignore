@@ -24,3 +24,5 @@ staticfiles/
 .vscode/
 .idea/
 .DS_Store
+
+docerk-compose.yml

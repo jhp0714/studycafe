@@ -1,4 +1,5 @@
 v1.3
+product.duration_minutes를 product.duration_hours로 수정
 
 # User
 
@@ -59,7 +60,7 @@ Locker 1:N LockerUsage
 | scode | string | 표기 코드(1H, 7D 등) |
 | name | string |  |
 | product_type | enum | time, flat,fixed,locker |
-| duration_minutes | int | 시간제 전용, 그 외 null |
+| duration_hours | int | 시간제 전용, 그 외 null |
 | duration_days | int | flat/fixed/ locker, time은 null |
 | price | int |  |
 | is_active | bool | 판매 여부 |

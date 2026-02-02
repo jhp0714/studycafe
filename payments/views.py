@@ -41,6 +41,10 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         res = super().list(request, *args, **kwargs)
         return ok(res.data)
 
+    def retrieve(self, request, *args, **kwargs):
+        res = super().retrieve(request, *args, **kwargs)
+        return ok(res.data)
+
 
 class AdminProductViewSet(viewsets.ModelViewSet):
     """

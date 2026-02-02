@@ -19,6 +19,12 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         return user
 
+    def create_superuser(self, phone:str, password:str, name:str =""):
+        user = self.create_user(phone=phone, password=password, name=name)
+        user.is_admin = True
+        user.save(using=self._db)
+        return user
+
 class User(AbstractBaseUser, PermissionsMixin):
     id = models.BigAutoField(primary_key=True)
 

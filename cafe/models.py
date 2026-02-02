@@ -10,24 +10,17 @@ class Seat(models.Model):
         NORMAL = "normal", "일반석"
         FIXED = "fixed", "지정석"
 
-    class OperatingStatus(models.TextChoices):
-        AVAILABLE = "available", "사용 가능"
-        OUT_OF_SERVICE = "out_of_service", "서비스 중지"
 
     id = models.BigAutoField(primary_key=True)
 
     seat_no = models.CharField(max_length=20, unique=True)
     seat_type = models.CharField(max_length=10, choices=SeatType.choices)
-    #operating_status = models.CharField(max_length=20, choices=OperatingStatus.choices, default=OperatingStatus.AVAILABLE)
     disabled = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
 
 class Locker(models.Model):
-    class OperatingStatus(models.TextChoices) :
-        AVAILABLE = "available", "사용 가능"
-        OUT_OF_SERVICE = "out_of_service", "서비스 중지"
 
     id = models.BigAutoField(primary_key=True)
 
