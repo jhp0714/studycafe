@@ -15,7 +15,7 @@ class Seat(models.Model):
 
     seat_no = models.CharField(max_length=20, unique=True)
     seat_type = models.CharField(max_length=10, choices=SeatType.choices)
-    disabled = models.BooleanField(default=False)
+    available = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -25,7 +25,7 @@ class Locker(models.Model):
     id = models.BigAutoField(primary_key=True)
 
     locker_no = models.CharField(max_length=20, unique=True)
-    disabled = models.BooleanField(default=False)
+    available = models.BooleanField(default=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
 

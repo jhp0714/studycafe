@@ -25,4 +25,4 @@ staticfiles/
 .idea/
 .DS_Store
 
-docerk-compose.yml
+docker-compose.yml

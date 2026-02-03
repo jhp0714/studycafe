@@ -3,6 +3,7 @@ Order.quantity/total_amount 제거
 Pass.status suspended 제거
 Seat/Locker status : available|out_of_service 로 수정
 product에 duration_days 추가
+좌석 목록과 사물함 목록 status : used|unused 로 수정
 
 ## 0. 공통
 
@@ -153,12 +154,12 @@ product에 duration_days 추가
 
 - GET /seats
     - seat_type : normal|fixed
-    - status : available|out_of_service
+    - status : used|unused
 
 ### 사물함 목록
 
 - GET /lockers
-    - status : available|out_of_service
+    - status : used|unused
 
 ## 5. Orders/Payments/Pass
 
@@ -319,7 +320,7 @@ product에 duration_days 추가
 - POST /admin/seats
 
 ```json
-{ "code": "A101", "seat_type": "normal", "status": "available" }
+{ "code": "A101", "seat_type": "normal", "status": "unused", "available":"true" }
 ```
 
 ### 좌석 상태 변경

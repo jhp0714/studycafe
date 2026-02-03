@@ -1,5 +1,6 @@
 v1.3
 product.duration_minutes를 product.duration_hours로 수정
+seat, locker의 disabled을 available로 수정
 
 # User
 
@@ -30,10 +31,10 @@ User 1:N AuditLog(actor)
 | id | pk |  |
 | seat_no | int/string | UNIQUE(표기 번호) |
 | seat_type | enum | normal, fixed |
-| disabled | bool | 비활성화 여부 |
+| available | bool | 비활성화 여부 |
 | created_at | datetime |  |
 
-점유는 SeatUsage로 판단. Seat는 운영 상태에만 중점을 둠
+점유는 SeatUsage로 판단
 
 ## 관계
 
@@ -45,7 +46,7 @@ Seat 1:N SeatUsage
 | --- | --- | --- |
 | id | pk |  |
 | locker_no | int/string | UNIQUE |
-| disabled | bool | 비활성화 여부 |
+| available | bool | 비활성화 여부 |
 | created_at | datetime |  |
 
 ## 관계
@@ -160,7 +161,7 @@ Pass 1:N LockerUsage
 | expected_end_at | datetime |  |
 | check_out_at | datetime | nullable(퇴실 전) |
 | status | enum | used, unused |
-| created_at | datetime |  |
+| created_at | datetime | a |
 - **(Postgres) seat_id에 대해 status='used'는 1개만** 허용하는 *partial unique index*
 - user_id에 대해 status='active' 1개만 허용(“동시 2좌석 점유 금지” 정책이면)
 
