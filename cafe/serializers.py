@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Seat, Locker
 
 class SeatReadSerializer(serializers.ModelSerializer):
+    seatus = serializers.CharField(read_only=True)
     class Meta:
         model = Seat
         fields = [
@@ -24,6 +25,7 @@ class SeatAdminWriteSerializer(serializers.ModelSerializer):
 
 
 class LockerReadSerializer(serializers.ModelSerializer):
+    status = serializers.CharField(read_only=True)
     class Meta:
         model = Locker
         fields = [

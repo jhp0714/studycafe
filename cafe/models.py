@@ -157,7 +157,7 @@ class LockerUsage(models.Model):
             # 1개의 락커엔 1명만
             models.UniqueConstraint(
                 fields=["locker"],
-                condition=Q(status="used"),
+                condition=Q(status="used") ,
                 name="uniq_used_locker_usage_per_locker",
             ),
             # 유저는 1개의 락커만

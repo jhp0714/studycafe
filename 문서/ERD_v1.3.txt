@@ -1,6 +1,7 @@
 v1.3
 product.duration_minutes를 product.duration_hours로 수정
 seat, locker의 disabled을 available로 수정
+seatUsage 의 check_out_at 삭제
 
 # User
 
@@ -67,8 +68,8 @@ Locker 1:N LockerUsage
 | is_active | bool | 판매 여부 |
 | created_at | datetime |  |
 - **UNIQUE(product_type, scode)** (같은 “7D”라도 fixed/locker가 따로 있을 수 있어서)
-- CHECK( product_type='time' ⇒ duration_minutes NOT NULL AND duration_days IS NULL )
-- CHECK( product_type IN ('flat','fixed','locker') ⇒ duration_days NOT NULL AND duration_minutes IS NULL )
+- CHECK( product_type='time' ⇒ duration_hours NOT NULL AND duration_days IS NULL )
+- CHECK( product_type IN ('flat','fixed','locker') ⇒ duration_days NOT NULL AND duration_hours IS NULL )
 
 ## 관계
 
@@ -158,12 +159,11 @@ Pass 1:N LockerUsage
 | pass_id | fk(Pass) | 어떤 패스를 이용하는지 |
 | seat_id | fk(Seat) |  |
 | check_in_at | datetime |  |
-| expected_end_at | datetime |  |
-| check_out_at | datetime | nullable(퇴실 전) |
+| expected_end_at | datetime | 자동 퇴실 시간  |
 | status | enum | used, unused |
-| created_at | datetime | a |
+| created_at | datetime |  |
 - **(Postgres) seat_id에 대해 status='used'는 1개만** 허용하는 *partial unique index*
-- user_id에 대해 status='active' 1개만 허용(“동시 2좌석 점유 금지” 정책이면)
+- user_id에 대해 status='used' 1개만 허용(“동시 2좌석 점유 금지” 정책이면)
 
 ## 관계
 
@@ -186,7 +186,7 @@ Seat 1:N SeatUsage
 | status | enum | used, unused |
 | created_at | datetime |  |
 
-**(Postgres) locker_id에 대해 status='active'는 1개만** 허용하는 *partial unique index*
+**(Postgres) locker_id에 대해 status='used'는 1개만** 허용하는 *partial unique index*
 
 ## 관계
 

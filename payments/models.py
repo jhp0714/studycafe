@@ -18,7 +18,7 @@ class Product(models.Model):
     name = models.CharField(max_length=100, help_text="상품명")
     product_type = models.CharField(max_length=10, choices=ProductType.choices, help_text="상품 타입")
 
-    duration_minutes = models.PositiveIntegerField(null=True, blank=True, help_text="시간제 전용")
+    duration_hours = models.PositiveIntegerField(null=True, blank=True, help_text="시간제 전용")
     duration_days = models.PositiveIntegerField(null=True, blank=True, help_text="기간제 전용")
 
     price = models.PositiveIntegerField()
@@ -32,8 +32,8 @@ class Product(models.Model):
             models.CheckConstraint(
                 name="chk_product_duration_shape",
                 check=(
-                    (Q(product_type="time") & Q(duration_minutes__isnull=False) & Q(duration_days__isnull=True))
-                    | (Q(product_type__in=["flat", "fixed", "locker"]) & Q(duration_minutes__isnull=True) & Q(duration_days__isnull=False))
+                    (Q(product_type="time") & Q(duration_hours__isnull=False) & Q(duration_days__isnull=True))
+                    | (Q(product_type__in=["flat", "fixed", "locker"]) & Q(duration_hours__isnull=True) & Q(duration_days__isnull=False))
                 )
             )
         ]
@@ -52,28 +52,12 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="orders")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="orders")
 
-    selected_seat = models.ForeignKey(
-        "cafe.Seat", null=True, blank=True, on_delete = models.PROTECT, related_name="orders_selected"
-    )
-    selected_locker = models.ForeignKey(
-        "cafe.Locker", null=True, blank=True, on_delete=models.PROTECT, related_name="orders_selected"
-    )
 
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.CREATE)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def clean(self):
-        if not self.product_id:
-            return
 
-        pt = self.product.product_type
-        if pt == "fixed" and not self.selected_seat_id:
-            raise ValidationError({"selected_seat":"product_type=fixed requires seat selection"})
-        if pt == "locker" and not self.selected_locker_id:
-            raise ValidationError({"selected_locker" : "product_type=locker requires locker selection"})
-        if pt in ("time", "flat") and (self.selected_seat_id or self.selected_locker_id):
-            raise ValidationError("time/flat must not have selection")
 
 
 class Payment(models.Model):
@@ -87,7 +71,8 @@ class Payment(models.Model):
 
     order = models.OneToOneField(Order, on_delete=models.PROTECT, related_name="payment")
     amount = models.PositiveIntegerField()
-
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.READY)
+    method = models.CharField(max_length=20, default="mock")
     paid_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
