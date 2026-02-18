@@ -107,6 +107,7 @@ Order 1:1 Pass
 | status | enum | ready, paid, canceled, refunded |
 | paid_at | datetime | nullable |
 | method | string | “mock” |
+| amount | int | 지불된 금액 |
 | created_at | datetime |  |
 
 ## 관계

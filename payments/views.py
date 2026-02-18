@@ -6,7 +6,7 @@ from accounts.permissions import IsAdminRole
 from .models import Product
 from .serializers import ProductReadSerializer, AdminProductWriteSerializer
 
-def ok(data=None, meta=None, status_code=200):
+def ok(data=None, meta=None, status_code=201):
     payload = {"data":data if data is not None else {}}
     if meta is not None:
         payload["meta"] = meta

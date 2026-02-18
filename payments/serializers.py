@@ -74,28 +74,18 @@ class AdminProductWriteSerializer(serializers.ModelSerializer):
 
 class OrderCreateSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()
-    selection = serializers.DictField(required=False)
 
     def validate(self, attrs):
-        user = self.context["request"].user
-        product_id = attrs["product_id"]
-        selection = attrs.get("selection") or {}
-
         try:
-            product = Product.objects.get(id=product_id, is_active=True)
+            product = Product.objects.get(id=attrs["product_id"], is_active=True)
         except Product.DoesNotExist:
             raise serializers.ValidationError({"product_id":"존재하지 않거나 비활성화된 상품입니다."})
 
-        pt = product.product_type
-        seat_id = selection.get("seat_id")
-        locker_id = selection.get("locker_id")
+        attrs["product"] = product
+        return attrs
 
-        # 이미 지정석 Pass 보유하고 있으면 추가 결제 시 좌석 재선택을 하지 않는다.
-        existing_fixed = Pass.objects.filter(user=user, pass_kind="fixed", status="active").first()
-        existing_locker = Pass.objects.filter(user=user, pass_kind="locker", status="active").first()
 
-        if pt == "ifxed":
-            # 이미 pass 보유 중이면 같은 좌석만 허용
-            if existing_fixed:
-                if seat_id is not None and seat_id != existing_fixed.fixed_seat_id:
-                    raise serializers.ValidationError({"selection.seat_id":"이미 보유한 지정석과"})
+class PaymentCreateSerailizer(serializers.Serializer):
+    order_id = serializers.IntegerField()
+    payment_method = serializers.CharField(required=False, allow_blank=True)
+    amount = serializers.IntegerField(min_value=0)

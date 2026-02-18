@@ -7,7 +7,7 @@ User = settings.AUTH_USER_MODEL
 
 class Product(models.Model):
     class ProductType(models.TextChoices) :
-        TIME = "time", "사간제"  # 일반석 시간제
+        TIME = "time", "시간제"  # 일반석 시간제
         FLAT = "flat" , "기간제" # 일반석 기간제
         FIXED = "fixed", "지정석"  # 지정석 기간제
         LOCKER = "locker", "사물함"  # 사물함 기간제
