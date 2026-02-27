@@ -52,12 +52,39 @@ class Order(models.Model):
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="orders")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="orders")
 
+    selected_seat = models.ForeignKey(
+        "cafe.Seat", null=True, blank=True, on_delete=models.PROTECT, related_name="orders_selected_seat"
+    )
+    selected_locker = models.ForeignKey(
+        "cafe.Locker", null=True, blank=True, on_delete=models.PROTECT, related_name="orders_selected_locker"
+    )
 
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.CREATE)
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def clean(self) :
+        super().clean()
+        if not self.product_id :
+            return
 
+        pt = self.product.product_type
+
+        if pt == "fixed" :
+            if not self.selected_seat_id :
+                raise ValidationError({"selected_seat" : "fixed 상품 주문은 selected_seat이 필요합니다."})
+            if self.selected_locker_id :
+                raise ValidationError({"selected_locker" : "fixed 상품 주문은 selected_locker를 가질 수 없습니다."})
+
+        elif pt == "locker" :
+            if not self.selected_locker_id :
+                raise ValidationError({"selected_locker" : "locker 상품 주문은 selected_locker가 필요합니다."})
+            if self.selected_seat_id :
+                raise ValidationError({"selected_seat" : "locker 상품 주문은 selected_seat을 가질 수 없습니다."})
+
+        else :  # time/flat
+            if self.selected_seat_id or self.selected_locker_id :
+                raise ValidationError({"selection" : "time/flat 상품 주문은 좌석/사물함 선택을 가질 수 없습니다."})
 
 
 class Payment(models.Model):
