@@ -168,3 +168,102 @@ class PaymentCreateSerailizer(serializers.Serializer):
 
         attrs["order"] = order
         return attrs
+
+
+class OrdderReadSerializer(serializers.ModelSerializer):
+    """
+    주문 조회용 Serializer
+    - 주문은 viwer에서 user로 필터
+    """
+    product = serializers.SerializerMethodField()
+    selection = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "order_no",
+            "status",
+            "product",
+            "selection",
+            "created_at"
+        ]
+
+    def get_product(self, obj:Order):
+        # 결제 화면/주문 상세에서 필요한 정보만
+        return {
+            "id":obj.product_id,
+            "name":getattr(obj.product,"name",None),
+            "product_type":getattr(obj.product,"product_type",None),
+            "duration_hours":getattr(obj.product,"duration_hours",None),
+            "duration_days" : getattr(obj.product, "duration_days", None),
+            "price":getattr(obj.product,"price",None)
+
+        }
+
+    def get_selection(self, obj:Order):
+        # Order에 selected_seat이나 selected_locker가 있다면 동작
+        # 없다면 항상 None으로 반환
+        return {
+            "seat_id":getattr(obj, "selected_seat_id", None),
+            "locker_id":getattr(obj, "selected_locker_id", None)
+        }
+
+
+class PaymentReadSerializer(serializers.ModelSerializer):
+    """
+    결제 조회용 Serializer
+    - Payment는 Order와 1:1, order.user로 소유권 판단
+    - 응답에 order_id와 order_status 정도는 같이 내려주면 편할듯함
+    """
+    order = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Payment
+        fields = [
+            "id",
+            "status",
+            "method",
+            "amount",
+            "paid_at",
+            "created_at",
+            "order"
+        ]
+
+    def get_order(self, obj:Payment):
+        return {
+            "id":obj.order_id,
+            "status":getattr(obj.order, "status",None),
+            "order_no":getattr(obj.order, "order_no",None)
+        }
+
+
+class PassReadSerializer(serializers.ModelSerializer):
+    """
+    이용권 조회용 Serializer
+    - Pass는 user 소유의 데이터
+    """
+    product = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Pass
+        fields = [
+            "id",
+            "pass_kind",
+            "status",
+            "start_at",
+            "end_at",
+            "remaining_minutes",
+            "fixed_seat_id",
+            "locker_id",
+            "product",
+            "created_at",
+        ]
+
+    def get_product(self, obj:Pass):
+        return {
+            "id" : obj.product_id,
+            "name" : getattr(obj.product, "name", None),
+            "product_type" : getattr(obj.product, "product_type", None),
+            "price" : getattr(obj.product, "price", None),
+        }

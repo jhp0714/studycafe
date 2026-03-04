@@ -61,7 +61,7 @@ Locker 1:N LockerUsage
 | scode | string | 표기 코드(1H, 7D 등) |
 | name | string |  |
 | product_type | enum | time, flat,fixed,locker |
-| dura tion_hours | int | 시간제 전용, 그 외 null |
+| duration_hours | int | 시간제 전용, 그 외 null |
 | duration_days | int | flat/fixed/ locker, time은 null |
 | price | int |  |
 | is_active | bool | 판매 여부 |

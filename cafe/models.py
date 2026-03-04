@@ -113,7 +113,6 @@ class SeatUsage(models.Model):
 
     check_in_at = models.DateTimeField()
     expected_end_at = models.DateTimeField(help_text="자동 퇴실 시간")
-    check_out_at = models.DateTimeField(null=True, blank=True, help_text="수동 퇴실 시간")
 
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.UNUSED)
     created_at = models.DateTimeField(auto_now_add=True)

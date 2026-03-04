@@ -165,7 +165,7 @@ class PaymentCreateAPIView(APIView):
                 # 기존 점유 종료
                 if pt == "fixed" :
                     SeatUsage.objects.select_for_update().filter(user=order.user, status="used").update(
-                        status="unused", check_out_at=now
+                        status="unused"
                     )
                 else :
                     LockerUsage.objects.select_for_update().filter(user=order.user, status="used").update(
