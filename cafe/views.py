@@ -21,7 +21,7 @@ class SeatViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        used_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"), status="used")
+        used_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"), )
         qs = Seat.objects.all().annotate(_is_used=Exists(used_exists)).order_by("id")
 
         seat_type = self.request.query_params.get("seat_type")
@@ -58,7 +58,7 @@ class LockerViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        used_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"), status="used")
+        used_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"),)
         qs = Locker.objects.all().annotate(_is_used=Exists(used_exists)).order_by("id")
 
         status_param = self.request.query_params.get("status")

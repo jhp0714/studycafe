@@ -17,7 +17,7 @@ class Seat(models.Model):
     seat_type = models.CharField(max_length=10, choices=SeatType.choices)
     available = models.BooleanField(default=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
 
 class Locker(models.Model):
@@ -27,7 +27,7 @@ class Locker(models.Model):
     locker_no = models.CharField(max_length=20, unique=True)
     available = models.BooleanField(default=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
 
 class Pass(models.Model):
@@ -60,7 +60,7 @@ class Pass(models.Model):
     locker = models.ForeignKey(Locker, null=True, blank=True, on_delete=models.PROTECT, related_name="locker_passes",
                                help_text="사용자가 지정한 사물함 번호")
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         constraints = [
@@ -101,9 +101,6 @@ class Pass(models.Model):
 
 
 class SeatUsage(models.Model):
-    class Status(models.TextChoices):
-        USED = "used", "사용중인"
-        UNUSED = "unused", "미사용된"
 
     id = models.BigAutoField(primary_key=True)
 
@@ -114,30 +111,24 @@ class SeatUsage(models.Model):
     check_in_at = models.DateTimeField()
     expected_end_at = models.DateTimeField(help_text="자동 퇴실 시간")
 
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.UNUSED)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         constraints = [
             # 좌석 1개엔 1명만
             models.UniqueConstraint(
                 fields=["seat"],
-                condition=Q(status="used"),
-                name="uniq_used_seat_usage_per_seat"
+                name="uniq_active_seat_usage_per_seat"
             ),
             # 유저는 1개의 좌석만
             models.UniqueConstraint(
                 fields=["user"],
-                condition=Q(status="used"),
-                name="uniq_used_seat_usage_per_user"
+                name="uniq_active_seat_usage_per_user"
             )
         ]
 
 
 class LockerUsage(models.Model):
-    class Status(models.TextChoices) :
-        USED = "used", "사용중인"
-        UNUSED = "unused", "미사용된"
 
     id = models.BigAutoField(primary_key=True)
 
@@ -148,21 +139,18 @@ class LockerUsage(models.Model):
     assign_at = models.DateTimeField()
     unassign_at = models.DateTimeField(null=True, blank=True)
 
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.UNUSED)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta :
         constraints = [
             # 1개의 락커엔 1명만
             models.UniqueConstraint(
                 fields=["locker"],
-                condition=Q(status="used") ,
-                name="uniq_used_locker_usage_per_locker",
+                name="uniq_active_locker_usage_per_locker",
             ),
             # 유저는 1개의 락커만
             models.UniqueConstraint(
                 fields=["user"],
-                condition=Q(status="used"),
-                name="uniq_used_locker_usage_per_user",
+                name="uniq_active_locker_usage_per_user",
             ),
         ]

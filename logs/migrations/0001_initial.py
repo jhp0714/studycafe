@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('entity_type', models.CharField(help_text='문제의 종류', max_length=20)),
                 ('action', models.CharField(help_text='조치 사항', max_length=20)),
                 ('entity_id', models.IntegerField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
                 ('actor_user_id', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='actor_user', to=settings.AUTH_USER_MODEL)),
             ],
         ),

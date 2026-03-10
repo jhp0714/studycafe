@@ -20,7 +20,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('locker_no', models.CharField(max_length=20, unique=True)),
                 ('available', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),
         migrations.CreateModel(
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 ('assign_at', models.DateTimeField()),
                 ('unassign_at', models.DateTimeField(blank=True, null=True)),
                 ('status', models.CharField(choices=[('used', '사용중인'), ('unused', '미사용된')], default='unused', max_length=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),
         migrations.CreateModel(
@@ -42,7 +42,7 @@ class Migration(migrations.Migration):
                 ('start_at', models.DateTimeField(blank=True, help_text='결제 후 생성', null=True)),
                 ('end_at', models.DateTimeField(blank=True, help_text='기간제 상품 끝나는 시점', null=True)),
                 ('remaining_minutes', models.PositiveIntegerField(blank=True, help_text='시간제 상품 남은 시간 분으로 관리', null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),
         migrations.CreateModel(
@@ -52,7 +52,7 @@ class Migration(migrations.Migration):
                 ('seat_no', models.CharField(max_length=20, unique=True)),
                 ('seat_type', models.CharField(choices=[('normal', '일반석'), ('fixed', '지정석')], max_length=10)),
                 ('available', models.BooleanField(default=False)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),
         migrations.CreateModel(
@@ -63,7 +63,7 @@ class Migration(migrations.Migration):
                 ('expected_end_at', models.DateTimeField(help_text='자동 퇴실 시간')),
                 ('check_out_at', models.DateTimeField(blank=True, help_text='수동 퇴실 시간', null=True)),
                 ('status', models.CharField(choices=[('used', '사용중인'), ('unused', '미사용된')], default='unused', max_length=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
                 ('pass_obj', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='seat_usage', to='cafe.pass')),
                 ('seat', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='Usages', to='cafe.seat')),
                 ('user', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='seat_usage', to=settings.AUTH_USER_MODEL)),

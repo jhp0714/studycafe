@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('order_no', models.CharField(max_length=40, unique=True)),
                 ('status', models.CharField(choices=[('created', '주문 생성'), ('paid', '요금 지불'), ('canceled', '주문 취소'), ('expired', '기한 만료')], default='created', max_length=10)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),
         migrations.CreateModel(
@@ -30,7 +30,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('amount', models.PositiveIntegerField()),
                 ('paid_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),
         migrations.CreateModel(
@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
                 ('duration_days', models.PositiveIntegerField(blank=True, help_text='기간제 전용', null=True)),
                 ('price', models.PositiveIntegerField()),
                 ('is_active', models.BooleanField(default=True)),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),
         migrations.CreateModel(
@@ -54,7 +54,7 @@ class Migration(migrations.Migration):
                 ('amount', models.PositiveIntegerField()),
                 ('reason', models.CharField(blank=True, max_length=255, null=True)),
                 ('refunded_at', models.DateTimeField()),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
                 ('admin_user', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='refunds_admin', to=settings.AUTH_USER_MODEL)),
                 ('payment', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='refunds', to='payments.payment')),
             ],

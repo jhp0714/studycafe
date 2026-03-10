@@ -1,6 +1,8 @@
 v1.4
 Payment에 amount 추가
 Order에 지정석 상품일시 좌석 번호 저장하게금 추가
+SeatUsage/LockerUsage 역할에 맞게 수정
+    - 현재 점유 상태 관리용이므로 퇴실 시 행 삭제
 
 # User
 
@@ -165,10 +167,10 @@ Pass 1:N LockerUsage
 | seat_id | fk(Seat) |  |
 | check_in_at | datetime |  |
 | expected_end_at | datetime | 자동 퇴실 시간  |
-| status | enum | used, unused |
 | created_at | datetime |  |
-- **(Postgres) seat_id에 대해 status='used'는 1개만** 허용하는 *partial unique index*
-- user_id에 대해 status='used' 1개만 허용(“동시 2좌석 점유 금지” 정책이면)
+- 현재 점유 중인 좌석만 저장
+- 체크아웃 시 행 삭제
+- 좌석 1개당 1행, 사용자 1명당 1행으로 unique constraint
 
 ## 관계
 
@@ -188,11 +190,10 @@ Seat 1:N SeatUsage
 | locker_id | fk(Locker) |  |
 | assign_at | datetime |  |
 | unassign_at | datetime | nullable |
-| status | enum | used, unused |
 | created_at | datetime |  |
-
-**(Postgres) locker_id에 대해 status='used'는 1개만** 허용하는 *partial unique index*
-
+- 현재 점유 중인 사물함만 저장
+- 체크아웃 시 행 삭제
+- 좌석 1개당 1행, 사용자 1명당 1행으로 unique constraint
 ## 관계
 
 User 1:N LockerUsage

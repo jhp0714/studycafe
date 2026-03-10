@@ -13,4 +13,4 @@ class Log(models.Model):
     action = models.CharField(max_length=20, help_text="조치 사항")
     entity_id = models.IntegerField(help_text="", null=True, blank=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)

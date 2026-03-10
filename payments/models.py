@@ -24,7 +24,7 @@ class Product(models.Model):
     price = models.PositiveIntegerField()
     is_active = models.BooleanField(default=True)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         constraints = [
@@ -61,7 +61,7 @@ class Order(models.Model):
 
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.CREATE)
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     def clean(self) :
         super().clean()
@@ -101,7 +101,7 @@ class Payment(models.Model):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.READY)
     method = models.CharField(max_length=20, default="mock")
     paid_at = models.DateTimeField(null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
 
 class Refund(models.Model):
@@ -114,4 +114,4 @@ class Refund(models.Model):
     reason = models.CharField(max_length=255, null=True, blank=True)
 
     refunded_at = models.DateTimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)

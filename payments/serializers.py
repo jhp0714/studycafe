@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, Order, Payment
+from .models import Product, Order, Payment, Refund
 from cafe.models import Seat, Locker, Pass
 
 class ProductReadSerializer(serializers.ModelSerializer):
@@ -170,7 +170,7 @@ class PaymentCreateSerailizer(serializers.Serializer):
         return attrs
 
 
-class OrdderReadSerializer(serializers.ModelSerializer):
+class OrderReadSerializer(serializers.ModelSerializer):
     """
     주문 조회용 Serializer
     - 주문은 viwer에서 user로 필터
@@ -266,4 +266,56 @@ class PassReadSerializer(serializers.ModelSerializer):
             "name" : getattr(obj.product, "name", None),
             "product_type" : getattr(obj.product, "product_type", None),
             "price" : getattr(obj.product, "price", None),
+        }
+
+
+class AdminRefundCreateSerializer(serializers.Serializer):
+    """
+    관리자 환불 생성 요청용 Serializer
+    - payment_id : 환불할 결제 pk
+    - amount : 환불 금액(전체 환불)
+    - reason : 환불 사유(null 가능)
+    """
+    payment_id = serializers.IntegerField()
+    amount = serializers.IntegerField(min_value=1)
+    reason = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=256)
+
+
+class AdminRefundReadSerializer(serializers.Serializer):
+    """
+    관리자 환불 조회용 serializer
+    - payment와 admin_user에 연결되어 있다.
+    """
+    payment = serializers.SerializerMethodField()
+    admin = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Refund
+        fields = [
+            "id",
+            "amount",
+            "reason",
+            "refunded_at",
+            "created_at",
+            "payment",
+            "admin",
+        ]
+
+    def get_payment(self, obj:Refund):
+        p: Payment = obj.payment
+        return {
+            "id":p.id,
+            "amount":p.amount,
+            "status:":p.status,
+            "method":p.method,
+            "paid_at":p.paid_at,
+            "order_id":p.order_id,
+        }
+
+    def get_admin(self, obj:Refund):
+        u = obj.admin_user
+        return {
+            "id":getattr(u,"id",None),
+            "phone" : getattr(u, "id", None),
+            "name" : getattr(u, "id", None),
         }

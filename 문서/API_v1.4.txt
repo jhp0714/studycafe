@@ -260,9 +260,7 @@ v.14
 {
   "data": {
     "seat": { "id": 1234 },
-    "checked_in_at": "2026-01-20T09:00:00Z",
-    "allowed_until": "2026-01-20T21:00:00Z",
-    "policy": { "max_session_hours": 12 }
+    "expected_end_at": "2026-01-20T21:00:00Z",
   }
 }
 ```
