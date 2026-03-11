@@ -168,8 +168,7 @@ v.14
 ```json
 {
   "product_id": 1234,
- "user_id":3495,
- ,"selection":{ "seat_id":10 }
+  "selection":{ "seat_id":10 }
 }
 ```
 - fixed:seledt_id 필수

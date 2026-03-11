@@ -20,13 +20,13 @@ urlpatterns = [
     path("admin/", include(admin_router.urls)),
 
     path("orders", OrderAPIView.as_view()),
-    path("orders/<int:order_id>", OrderRetrieveAPIView()),
+    path("orders/<int:order_id>", OrderRetrieveAPIView.as_view()),
 
     path("payments", PaymentAPIView.as_view()),
-    path("payments<int:payment_id>", PaymentRetrieveAPIView.as_view()),
+    path("payments/<int:payment_id>", PaymentRetrieveAPIView.as_view()),
 
     path("passes", PassAPIView.as_view()),
-    path("passes/<int:pass_id>", PassRetrieveAPIView()),
+    path("passes/<int:pass_id>", PassRetrieveAPIView.as_view()),
 
     # 관리자 환불
     path("admin/refunds", AdminRefundAPIView.as_view()),

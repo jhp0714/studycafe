@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
+from django.shortcuts import get_object_or_404
 
 from rest_framework.views import APIView
 from rest_framework import viewsets
@@ -18,9 +19,9 @@ from .serializers import (
     OrderReadSerializer, PaymentReadSerializer, PassReadSerializer,
     AdminRefundReadSerializer, AdminRefundCreateSerializer
 )
-from services.refunds import create_refund, RefundError
+from .services.refunds import create_refund, RefundError
 
-def ok(data=None, meta=None, status_code=201):
+def ok(data=None, meta=None, status_code=200):
     payload = {"data":data if data is not None else {}}
     if meta is not None:
         payload["meta"] = meta
@@ -44,11 +45,11 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         if product_type:
             qs = qs.filter(product_type=product_type)
 
-        available = self.request.query_params.get("available")
-        if available is not None:
-            if available == "true":
+        is_active = self.request.query_params.get("is_active")
+        if is_active is not None:
+            if is_active == "true":
                 qs = qs.filter(is_active=True)
-            elif available == "false":
+            elif is_active == "false":
                 qs = qs.filter(is_active=False)
 
         return qs
@@ -85,7 +86,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         res = super().create(request, *args, **kwargs)
-        return ok(res.data)
+        return ok(res.data, status_code=201)
 
 
 
@@ -98,7 +99,7 @@ class OrderRetrieveAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, order_id:int):
-        order = (
+        order = get_object_or_404(
             Order.objects
             .select_related("product")
             .get(id=order_id, user=request.user)
@@ -115,12 +116,12 @@ class PaymentRetrieveAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, payment_id:int):
-        payment = (
+        payment = get_object_or_404(
             Payment.objects
             .select_related("order","order__product")
             .get(id=payment_id, order__user=request.user)
         )
-        data = PaymentReadSerializer(Payment).data
+        data = PaymentReadSerializer(payment).data
         return ok(data)
 
 
@@ -160,7 +161,7 @@ class PassRetrieveAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pass_id:int):
-        p = Pass.objects.select_related("product").get(id=pass_id, user=request.user)
+        p = get_object_or_404(Pass.objects.select_related("product").get(id=pass_id, user=request.user))
         data = PassReadSerializer(p).data
         return ok(data)
 
@@ -199,7 +200,8 @@ class OrderAPIView(APIView):
         order.save()
 
         return ok(
-            {"order_id" : order.id, "order_status" : order.status}, status_code=201
+            {"order_id" : order.id, "order_status" : order.status},
+            status_code=201,
         )
 
 
@@ -239,7 +241,7 @@ class PaymentAPIView(APIView):
         order = (
             Order.objects
             .select_for_update()
-            .select_related("product", "selected_seat", "selected_locker")
+            .select_related("product", "selected_seat", "selected_locker", "user")
             .get(id=s.validated_data["order"].id)
         )
 
@@ -250,93 +252,95 @@ class PaymentAPIView(APIView):
         product = order.product
         pt = product.product_type
 
-        # 결제 생성: amount는 항상 product.price(수량은 항상 1이다.)
         payment = Payment.objects.create(
             order=order,
             amount=product.price,
             status=Payment.Status.PAID,
-            method=(request.data.get("payment_method") or "mock"),
+            method=s.validated_data.get("payment_method", "mock"),
             paid_at=now,
         )
 
         order.status = Order.Status.PAID
         order.save(update_fields=["status"])
 
-        # Pass 생성/연장
         base_end = None
 
         if pt in ("fixed", "locker") :
             existing = (
-                Pass.objects.select_for_update()
-                .filter(user=order.user, pass_kind=pt, status="active").first()
+                Pass.objects
+                .select_for_update()
+                .filter(user=order.user, pass_kind=pt, status=Pass.Status.ACTIVE)
+                .first()
             )
+
             if existing :
-                base_end = existing.end_at or now
+                base_end = existing.end_at if existing.end_at and existing.end_at > now else now
+
                 existing.status = Pass.Status.EXPIRED
                 existing.save(update_fields=["status"])
 
-                # 기존 점유 종료
                 if pt == "fixed" :
-                    SeatUsage.objects.select_for_update().filter(user=order.user, status="used").update(
-                        status="unused"
-                    )
+                    SeatUsage.objects.select_for_update().filter(user=order.user).delete()
                 else :
-                    LockerUsage.objects.select_for_update().filter(user=order.user, status="used").update(
-                        status="unused", unassign_at=now
-                    )
+                    LockerUsage.objects.select_for_update().filter(user=order.user).delete()
 
-            pass_obj = Pass(
+        pass_obj = Pass(
+            user=order.user,
+            product=product,
+            order=order,
+            pass_kind=pt,
+            status=Pass.Status.ACTIVE,
+            start_at=now,
+        )
+
+        if pt == "time" :
+            pass_obj.remaining_minutes = (product.duration_hours or 0) * 60
+        else :
+            start_base = base_end if base_end else now
+            pass_obj.end_at = start_base + timedelta(days=(product.duration_days or 0))
+
+        if pt == "fixed" :
+            pass_obj.fixed_seat = order.selected_seat
+        elif pt == "locker" :
+            pass_obj.locker = order.selected_locker
+
+        pass_obj.full_clean()
+        pass_obj.save()
+
+        if pt == "fixed" :
+            SeatUsage.objects.create(
                 user=order.user,
-                product=product,
-                order=order,
-                pass_kind=pt,
-                status=Pass.Status.ACTIVE,
-                start_at=now,
+                pass_obj=pass_obj,
+                seat=order.selected_seat,
+                check_in_at=now,
+                expected_end_at=pass_obj.end_at,
             )
 
-            if pt == "time" :
-                pass_obj.remaining_minutes = (product.duration_hours or 0) * 60
-            else :
-                start_base = base_end if (base_end and base_end > now) else now
-                pass_obj.end_at = start_base + timedelta(days=(product.duration_days or 0))
+        elif pt == "locker" :
+            LockerUsage.objects.create(
+                user=order.user,
+                pass_obj=pass_obj,
+                locker=order.selected_locker,
+                assign_at=now,
+                unassign_at=pass_obj.end_at,
+            )
 
-            if pt == "fixed" :
-                pass_obj.fixed_seat = order.selected_seat
-            if pt == "locker" :
-                pass_obj.locker = order.selected_locker
-
-            pass_obj.full_clean()
-            pass_obj.save()
-
-            # fixed/locker는 결제 시점에 Usage 생성
-            if pt == "fixed" :
-                SeatUsage.objects.create(
-                    user=order.user,
-                    pass_obj=pass_obj,
-                    seat=order.selected_seat,
-                    check_in_at=now,
-                    expected_end_at=pass_obj.end_at,
-                    status=SeatUsage.Status.USED,
-                )
-
-            if pt == "locker" :
-                LockerUsage.objects.create(
-                    user=order.user,
-                    pass_obj=pass_obj,
-                    locker=order.selected_locker,
-                    assign_at=now,
-                    status=LockerUsage.Status.USED,
-                )
-
-            return ok(
-                {
-                    "payment_id" : payment.id,
-                    "payment_status" : payment.status,
-                    "order" : {"id" : order.id, "status" : order.status},
-                    "pass" : {"id" : pass_obj.id, "pass_kind" : pass_obj.pass_kind, "status" : pass_obj.status},
+        return ok(
+            {
+                "payment_id" : payment.id,
+                "payment_status" : payment.status,
+                "order" : {
+                    "id" : order.id,
+                    "status" : order.status,
                 },
-                status_code=201
-            )
+                "pass" : {
+                    "id" : pass_obj.id,
+                    "pass_kind" : pass_obj.pass_kind,
+                    "status" : pass_obj.status,
+                },
+            },
+            status_code=201,
+        )
 
 
 class AdminRefundAPIView(APIView):
@@ -391,5 +395,5 @@ class AdminRefundRetrieveAPIView(APIView):
     permission_classes = [IsAuthenticated, IsAdminRole]
 
     def get(self, request, refund_id:int):
-        refund = Refund.objects.select_related("payment","payment__order","admin_user").get(id=refund_id)
+        refund = get_object_or_404(Refund.objects.select_related("payment","payment__order","admin_user").get(id=refund_id))
         return ok(AdminRefundReadSerializer(refund).data)

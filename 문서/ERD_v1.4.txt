@@ -189,7 +189,7 @@ Seat 1:N SeatUsage
 | pass_id | fk(Pass) |  |
 | locker_id | fk(Locker) |  |
 | assign_at | datetime |  |
-| unassign_at | datetime | nullable |
+| unassign_at | datetime | nullable, ui 보여질 종료 시간 |
 | created_at | datetime |  |
 - 현재 점유 중인 사물함만 저장
 - 체크아웃 시 행 삭제
