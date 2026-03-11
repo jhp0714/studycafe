@@ -11,6 +11,7 @@ SeatUsage/LockerUsage 역할에 맞게 수정
 | id | pk |  |
 | phone | string | UNIQUE, 로그인 ID(전화번호) |
 | password | string | 해시로 저장, phone 뒷 4자리 |
+| name | string | 이름 저장 |
 | is_admin | bool | db에서 따로 설정 default false |
 | created_at | datetime |  |
 

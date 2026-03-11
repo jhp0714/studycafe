@@ -10,12 +10,10 @@ class UserManager(BaseUserManager):
 
         user = self.model(phone=phone, name=name)
 
-        # 비밀번호 부분은 조금 더 생각을 해보자
-        if password:
-            user.set_password(password)
-        else:
-            user.set_unsable_password()
+        if password is None:
+            password = phone[-4:]
 
+        user.set_password(password)
         user.save(using=self._db)
         return user
 
@@ -32,7 +30,6 @@ class User(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=50)
 
     is_admin = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=False)
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
