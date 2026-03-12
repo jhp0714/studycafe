@@ -95,3 +95,41 @@ class RefreshAPIView(APIView):
 
 
 class LogoutAPIView(APIView):
+    def post(self, requeset):
+        refresh_token = requeset.data.get("refresh_token")
+        if not refresh_token:
+            return Response(
+                {
+                    "error":{
+                        "code":"VALIDATION_ERROR",
+                        "message":"refresh_token은 필수입니다.",
+                        "details":{},
+                    }
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            token = RefreshToken(refresh_token)
+            token.blacklist()
+
+            return Response(
+                {
+                    "data": {
+                        "message": "로그아웃 되었습니다."
+                    },
+                    "meta": {},
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception:
+            return Response(
+                {
+                    "error": {
+                        "code": "UNAUTHORIZED",
+                        "message": "유효하지 않은 refresh_token 입니다.",
+                        "details": {},
+                    }
+                },
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
