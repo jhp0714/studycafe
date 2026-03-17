@@ -48,3 +48,31 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ["id", "name", "role"]
+
+
+class MeSerializer(serializers.ModelSerializer):
+    current_seat = serializers.SerializerMethodField()
+    current_locker = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ["id","name","phone","current_seat","current_locker"]
+
+    def get_current_seat(self, obj):
+        seat_usage = getattr(obj, "active_seat_usage",None)
+        if not seat_usage or not seat_usage.seat_id:
+            return None
+
+        return {
+            "id":seat_usage.seat_id,
+            "seat_type":seat_usage.seat.seat_type,
+        }
+
+    def get_current_locker(self, obj):
+        locker_usage = getattr(obj, "active_locker_usage", None)
+        if not locker_usage or not locker_usage.locker_id :
+            return None
+
+        return {
+            "id" : locker_usage.locker_id,
+        }

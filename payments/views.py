@@ -71,7 +71,7 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     GET     /admin/products/{id}
     """
     serializer_class = AdminProductWriteSerializer
-    permission_classes = [IsAdminRole]
+    permission_classes = [IsAdminRole, IsAuthenticated]
 
     def get_queryset(self):
         return Product.objects.all().order_by("id")
