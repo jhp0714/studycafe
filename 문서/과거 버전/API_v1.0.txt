@@ -108,7 +108,7 @@
 ### 내 패스(이용권) 목록
 
 - GET /me/passes?status=active
-    - status : active|expired|suspended|cancelled
+    - status : active|expired|suspended|canceled
 
 ### 내 주문 목록
 
@@ -355,7 +355,7 @@
     "payment_status": "refunded",
     "refunded_amount": 30000,
     "order_status": "canceled",
-    "pass_status": "cancelled"
+    "pass_status": "canceled"
   }
 }
 ```

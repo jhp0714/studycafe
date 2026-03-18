@@ -109,7 +109,7 @@ v.14
 ### 내 패스(이용권) 목록
 
 - GET /me/passes?status=active
-    - status : active|expired|cancelled
+    - status : active|expired|canceled
 
 ### 내 주문 목록
 

@@ -91,7 +91,7 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
     GET     /admin/seats/{id}
     """
     serializer_class = SeatAdminWriteSerializer
-    permission_classes = [IsAdminRole, IsAdminRole]
+    permission_classes = [IsAuthenticated, IsAdminRole]
 
     def get_queryset(self):
         return Seat.objects.all().order_by("id")
@@ -121,7 +121,7 @@ class AdminLockerViewSet(viewsets.ModelViewSet):
     GET     /admin/lockers/{id}
     """
     serializer_class = LockerAdminWriteSerializer
-    permission_classes = [IsAdminRole, IsAdminRole]
+    permission_classes = [IsAuthenticated, IsAdminRole]
 
     def get_queryset(self) :
         return Locker.objects.all().order_by("id")
