@@ -1,7 +1,10 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 
-from .views import SeatViewSet, LockerViewSet, AdminSeatViewSet, AdminLockerViewSet
+from .views import (
+    SeatViewSet, LockerViewSet, AdminSeatViewSet, AdminLockerViewSet,
+    AdminForceCheckoutAPIView
+)
 
 router = DefaultRouter()
 router.register(r"seats", SeatViewSet, basename="seats")
@@ -13,5 +16,6 @@ admin_router.register(r"lockers", AdminLockerViewSet, basename="admin-lockers")
 
 urlpatterns = [
     path("", include(router.urls)),
-    path("admin/", include(admin_router.urls))
+    path("admin/", include(admin_router.urls)),
+    path("admin/usage/force-checkout",AdminForceCheckoutAPIView.as_view(),name="admin-foce-checkout"),
 ]

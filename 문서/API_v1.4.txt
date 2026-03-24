@@ -341,7 +341,7 @@ v.14
 
 ### 환불(관리자)
 
-- POST /admin/payments/{payment_id}/refund
+- POST /admin/refunds/{refund_id}
 
 ```json
 { "amount": 30000, "reason": "고객 요청" }

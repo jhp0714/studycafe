@@ -43,3 +43,8 @@ class LockerAdminWriteSerializer(serializers.ModelSerializer):
             "locker_no",
             "available",
         ]
+
+
+class AdminForceCheckoutSerializer(serializers.Serializer):
+    user_id = serializers.IntegerField()
+    reason = serializers.CharField(required=False, allow_blank=True, max_length=255)

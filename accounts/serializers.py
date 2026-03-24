@@ -1,5 +1,6 @@
 from django.contrib.auth import authenticate
 from rest_framework import serializers
+from rest_framework.exceptions import AuthenticationFailed
 
 from .models import User
 
@@ -36,7 +37,7 @@ class LoginSerializer(serializers.Serializer):
         )
 
         if not user:
-            raise serializers.ValidationError("전화번호 또는 비밀번호가 올바르지 않습니다.")
+            raise AuthenticationFailed("전화번호 또는 비밀번호가 올바르지 않습니다.")
 
         attrs["user"] = user
         return attrs

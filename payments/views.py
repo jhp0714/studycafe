@@ -10,7 +10,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdminRole
+from accounts.permissions import IsAdminRole, AdminModelViewSet, AdminAPIView
 from .models import Product, Order, Payment, Refund
 from cafe.models import Pass, SeatUsage, LockerUsage
 from .serializers import (
@@ -63,7 +63,7 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return ok(res.data)
 
 
-class AdminProductViewSet(viewsets.ModelViewSet):
+class AdminProductViewSet(AdminModelViewSet):
     """
     POST    /admin/products
     PATCH   /admin/products/{id}
@@ -71,7 +71,6 @@ class AdminProductViewSet(viewsets.ModelViewSet):
     GET     /admin/products/{id}
     """
     serializer_class = AdminProductWriteSerializer
-    permission_classes = [IsAdminRole, IsAuthenticated]
 
     def get_queryset(self):
         return Product.objects.all().order_by("id")
@@ -100,9 +99,9 @@ class OrderRetrieveAPIView(APIView):
 
     def get(self, request, order_id:int):
         order = get_object_or_404(
-            Order.objects
-            .select_related("product")
-            .get(id=order_id, user=request.user)
+            Order.objects.select_related("product"),
+            id=order_id,
+            user=request.user
         )
         data = OrderReadSerializer(order).data
         return ok(data)
@@ -117,9 +116,9 @@ class PaymentRetrieveAPIView(APIView):
 
     def get(self, request, payment_id:int):
         payment = get_object_or_404(
-            Payment.objects
-            .select_related("order","order__product")
-            .get(id=payment_id, order__user=request.user)
+            Payment.objects.select_related("order","order__product"),
+            id=payment_id,
+            order__user=request.user
         )
         data = PaymentReadSerializer(payment).data
         return ok(data)
@@ -161,7 +160,11 @@ class PassRetrieveAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request, pass_id:int):
-        p = get_object_or_404(Pass.objects.select_related("product").get(id=pass_id, user=request.user))
+        p = get_object_or_404(
+            Pass.objects.select_related("product"),
+            id=pass_id,
+            user=request.user,
+        )
         data = PassReadSerializer(p).data
         return ok(data)
 
@@ -343,7 +346,7 @@ class PaymentAPIView(APIView):
         )
 
 
-class AdminRefundAPIView(APIView):
+class AdminRefundAPIView(AdminAPIView):
     """
     GET  /admin/refunds
     POST /admin/refunds
@@ -351,7 +354,6 @@ class AdminRefundAPIView(APIView):
     - GET은 환불 목록, payment_id로 필터 가능
     - POST는 환불 생성(전체 환불)
     """
-    permission_classes = [IsAuthenticated, IsAdminRole]
 
     def get(self, request):
         qs = (
@@ -386,14 +388,16 @@ class AdminRefundAPIView(APIView):
         return ok(AdminRefundReadSerializer(refund).data, status_code=201)
 
 
-class AdminRefundRetrieveAPIView(APIView):
+class AdminRefundRetrieveAPIView(AdminAPIView):
     """
     GET /admin/refunds/{id}
     - 관리자만 접근 가능
     - 환불 상세 조회
     """
-    permission_classes = [IsAuthenticated, IsAdminRole]
 
     def get(self, request, refund_id:int):
-        refund = get_object_or_404(Refund.objects.select_related("payment","payment__order","admin_user").get(id=refund_id))
+        refund = get_object_or_404(
+            Refund.objects.select_related("payment","payment__order","admin_user"),
+            id=refund_id,
+        )
         return ok(AdminRefundReadSerializer(refund).data)

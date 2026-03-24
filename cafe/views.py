@@ -1,11 +1,16 @@
 from django.db.models import Exists, OuterRef
-from rest_framework import viewsets
+from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from accounts.permissions import IsAdminRole
 from .models import Seat, Locker, SeatUsage, LockerUsage
-from .serializers import SeatReadSerializer, SeatAdminWriteSerializer, LockerReadSerializer, LockerAdminWriteSerializer
+from .serializers import (
+    SeatReadSerializer, SeatAdminWriteSerializer,
+    LockerReadSerializer, LockerAdminWriteSerializer,
+    AdminForceCheckoutSerializer,
+)
 
 def ok(data=None, meta=None, status_code=200):
     payload = {"data": data if data is not None else {}}
@@ -141,3 +146,30 @@ class AdminLockerViewSet(viewsets.ModelViewSet):
     def partial_update(self, request, *args, **kwargs) :
         res = super().partial_update(request, *args, **kwargs)
         return ok(res.data)
+
+
+class AdminForceCheckoutAPIView(APIView):
+    """
+    POST /admin/usage/force-checkout
+
+    강제 퇴실 처리 로직은 추후 구현
+    """
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def post(self, request):
+        serializer = AdminForceCheckoutSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        user_id = serializer.validated_data["user_id"]
+        reason = serializer.validated_data.get("reason","")
+
+        # 강제 퇴실 로식 작성 시 수정
+
+        return ok(
+            {
+                "user_id":user_id,
+                "checkout_type":"force",
+                "reason":reason,
+            },
+            status_code=status.HTTP_200_OK,
+        )

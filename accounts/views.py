@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
 from cafe.models import SeatUsage, LockerUsage, Pass
 from payments.models import Order
@@ -83,24 +84,24 @@ class LoginAPIView(APIView):
 class RefreshAPIView(APIView):
     permission_classes = [AllowAny]
 
-    def post(self, request):
+    def post(self, request) :
         refresh_token = request.data.get("refresh_token")
-        if not refresh_token:
+        if not refresh_token :
             return error(
                 code="VALIDATION_ERROR",
                 message="refresh_token은 필수입니다.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
+        try :
             refresh = RefreshToken(refresh_token)
             access_token = str(refresh.access_token)
 
             return ok(
-                data={"access_token":access_token},
+                data={"access_token" : access_token},
                 status_code=status.HTTP_200_OK,
             )
-        except Exception:
+        except (TokenError, InvalidToken) :
             return error(
                 code="UNAUTHORIZED",
                 message="유효하지 않은 refresh_token 입니다.",
@@ -110,25 +111,31 @@ class RefreshAPIView(APIView):
 
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
+
+    def post(self, request) :
         refresh_token = request.data.get("refresh_token")
-        if not refresh_token:
+        if not refresh_token :
             return error(
                 code="VALIDATION_ERROR",
                 message="refresh_token은 필수입니다.",
                 status_code=status.HTTP_400_BAD_REQUEST,
             )
 
-        try:
+        try :
             token = RefreshToken(refresh_token)
+            if token.get("user_id") != request.user.id :
+                return error(
+                    code="FORBIDDEN",
+                    message="본인의 refresh_token만 로그아웃할 수 있습니다.",
+                    status_code=status.HTTP_403_FORBIDDEN,
+                )
             token.blacklist()
 
             return ok(
                 data={"message" : "로그아웃 되었습니다."},
                 status_code=status.HTTP_200_OK,
             )
-        except Exception:
+        except (TokenError, InvalidToken) :
             return error(
                 code="UNAUTHORIZED",
                 message="유효하지 않은 refresh_token 입니다.",
