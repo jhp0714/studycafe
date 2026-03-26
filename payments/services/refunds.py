@@ -1,3 +1,15 @@
+"""
+환불
+
+payment 락
+payment refunded
+order canceled
+pass canceled
+usage 정리
+refund 생성
+로그 생성
+"""
+
 from __future__ import annotations
 
 from typing import Optional
