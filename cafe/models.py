@@ -46,7 +46,6 @@ class Pass(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="passes")
     product = models.ForeignKey("payments.Product", on_delete=models.PROTECT, related_name="passes")
-    order = models.OneToOneField("payments.Order", on_delete=models.PROTECT, related_name="pass_obj")
 
     pass_kind = models.CharField(max_length=10, choices=PassKind.choices)
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.ACTIVE)

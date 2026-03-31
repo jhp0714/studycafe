@@ -51,7 +51,9 @@ class Order(models.Model):
     order_no = models.CharField(max_length=40, unique=True)
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="orders")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="orders")
-
+    pass_obj = models.ForeignKey(
+        "cafe.Pass", null=True, blank=True, on_delete=models.PROTECT, related_name="orders",
+    )
     selected_seat = models.ForeignKey(
         "cafe.Seat", null=True, blank=True, on_delete=models.PROTECT, related_name="orders_selected_seat"
     )
