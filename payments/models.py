@@ -41,7 +41,7 @@ class Product(models.Model):
 
 class Order(models.Model):
     class Status(models.TextChoices):
-        CREATE = "created", "주문 생성"
+        CREATED = "created", "주문 생성"
         PAID = "paid", "요금 지불"
         CANCELED = "canceled", "주문 취소"
         EXPIRED = "expired", "기한 만료"
@@ -61,7 +61,7 @@ class Order(models.Model):
         "cafe.Locker", null=True, blank=True, on_delete=models.PROTECT, related_name="orders_selected_locker"
     )
 
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.CREATE)
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.CREATED)
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -98,7 +98,7 @@ class Payment(models.Model):
 
     id = models.BigAutoField(primary_key=True)
 
-    order = models.OneToOneField(Order, on_delete=models.PROTECT, related_name="payment")
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="payment")
     amount = models.PositiveIntegerField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.READY)
     method = models.CharField(max_length=20, default="mock")

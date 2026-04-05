@@ -228,7 +228,7 @@ class PaymentCreateSerailizer(serializers.Serializer):
                 "order_id" : "결제 가능한 주문 상태가 아닙니다."
             })
 
-        if hasattr(order, "payment") :
+        if order.payments.filter(status=Payment.Status.PAID).exists() :
             raise serializers.ValidationError({
                 "order_id" : "이미 결제된 주문입니다."
             })

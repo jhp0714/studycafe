@@ -20,6 +20,7 @@ from .serializers import (
     AdminRefundReadSerializer, AdminRefundCreateSerializer
 )
 from .services.refunds import create_refund, RefundError
+from .services.payments import pay_order
 
 def ok(data=None, meta=None, status_code=200):
     payload = {"data":data if data is not None else {}}
@@ -197,7 +198,7 @@ class OrderAPIView(APIView):
             product=product,
             selected_seat=selected_seat,
             selected_locker=selected_locker,
-            status=Order.Status.CREATE,
+            status=Order.Status.CREATED,
         )
         order.full_clean()
         order.save()
@@ -229,122 +230,145 @@ class PaymentAPIView(APIView):
         return ok(data, meta={"count" : qs.count()})
 
 
-    @transaction.atomic
     def post(self, request) :
         """
         결제 확정
-        - Payment(amount/status/method/paid_at)
-        - Order(status=paid)
-        - Pass 생성/연장
-        - fixed/locker: 결제 완료 시 Pass + 좌석 점유 생성
+        - 요청 검증은 serializer
+        - 실제 로직은 service
         """
         s = PaymentCreateSerailizer(data=request.data, context={"request" : request})
         s.is_valid(raise_exception=True)
 
-        order = (
-            Order.objects
-            .select_for_update()
-            .select_related("product", "selected_seat", "selected_locker", "user")
-            .get(id=s.validated_data["order"].id)
+        # order = (
+        #     Order.objects
+        #     .select_for_update()
+        #     .select_related("product", "selected_seat", "selected_locker", "user")
+        #     .get(id=s.validated_data["order"].id)
+        # )
+        #
+        # if hasattr(order, "payment") :
+        #     return ok({"message" : "이미 결제된 주문입니다."}, status_code=400)
+        #
+        # now = timezone.now()
+        # product = order.product
+        # pt = product.product_type
+        #
+        # payment = Payment.objects.create(
+        #     order=order,
+        #     amount=product.price,
+        #     status=Payment.Status.PAID,
+        #     method=s.validated_data.get("payment_method", "mock"),
+        #     paid_at=now,
+        # )
+        #
+        # order.status = Order.Status.PAID
+        # order.save(update_fields=["status"])
+        #
+        # base_end = None
+        #
+        # if pt in ("fixed", "locker") :
+        #     existing = (
+        #         Pass.objects
+        #         .select_for_update()
+        #         .filter(user=order.user, pass_kind=pt, status=Pass.Status.ACTIVE)
+        #         .first()
+        #     )
+        #
+        #     if existing :
+        #         base_end = existing.end_at if existing.end_at and existing.end_at > now else now
+        #
+        #         existing.status = Pass.Status.EXPIRED
+        #         existing.save(update_fields=["status"])
+        #
+        #         if pt == "fixed" :
+        #             SeatUsage.objects.select_for_update().filter(user=order.user).delete()
+        #         else :
+        #             LockerUsage.objects.select_for_update().filter(user=order.user).delete()
+        #
+        # pass_obj = Pass(
+        #     user=order.user,
+        #     product=product,
+        #     order=order,
+        #     pass_kind=pt,
+        #     status=Pass.Status.ACTIVE,
+        #     start_at=now,
+        # )
+        #
+        # if pt == "time" :
+        #     pass_obj.remaining_minutes = (product.duration_hours or 0) * 60
+        # else :
+        #     start_base = base_end if base_end else now
+        #     pass_obj.end_at = start_base + timedelta(days=(product.duration_days or 0))
+        #
+        # if pt == "fixed" :
+        #     pass_obj.fixed_seat = order.selected_seat
+        # elif pt == "locker" :
+        #     pass_obj.locker = order.selected_locker
+        #
+        # pass_obj.full_clean()
+        # pass_obj.save()
+        #
+        # if pt == "fixed" :
+        #     SeatUsage.objects.create(
+        #         user=order.user,
+        #         pass_obj=pass_obj,
+        #         seat=order.selected_seat,
+        #         check_in_at=now,
+        #         expected_end_at=pass_obj.end_at,
+        #     )
+        #
+        # elif pt == "locker" :
+        #     LockerUsage.objects.create(
+        #         user=order.user,
+        #         pass_obj=pass_obj,
+        #         locker=order.selected_locker,
+        #         assign_at=now,
+        #         unassign_at=pass_obj.end_at,
+        #     )
+        #
+        # return ok(
+        #     {
+        #         "payment_id" : payment.id,
+        #         "payment_status" : payment.status,
+        #         "order" : {
+        #             "id" : order.id,
+        #             "status" : order.status,
+        #         },
+        #         "pass" : {
+        #             "id" : pass_obj.id,
+        #             "pass_kind" : pass_obj.pass_kind,
+        #             "status" : pass_obj.status,
+        #         },
+        #     },
+        #     status_code=201,
+        # )
+        payment, order, pass_obj = pay_order(
+            user=request.user,
+            order_id=s.validated_data["order"].id,
+            payment_method=s.validated_data.get("payment_method", "mock")
         )
-
-        if hasattr(order, "payment") :
-            return ok({"message" : "이미 결제된 주문입니다."}, status_code=400)
-
-        now = timezone.now()
-        product = order.product
-        pt = product.product_type
-
-        payment = Payment.objects.create(
-            order=order,
-            amount=product.price,
-            status=Payment.Status.PAID,
-            method=s.validated_data.get("payment_method", "mock"),
-            paid_at=now,
-        )
-
-        order.status = Order.Status.PAID
-        order.save(update_fields=["status"])
-
-        base_end = None
-
-        if pt in ("fixed", "locker") :
-            existing = (
-                Pass.objects
-                .select_for_update()
-                .filter(user=order.user, pass_kind=pt, status=Pass.Status.ACTIVE)
-                .first()
-            )
-
-            if existing :
-                base_end = existing.end_at if existing.end_at and existing.end_at > now else now
-
-                existing.status = Pass.Status.EXPIRED
-                existing.save(update_fields=["status"])
-
-                if pt == "fixed" :
-                    SeatUsage.objects.select_for_update().filter(user=order.user).delete()
-                else :
-                    LockerUsage.objects.select_for_update().filter(user=order.user).delete()
-
-        pass_obj = Pass(
-            user=order.user,
-            product=product,
-            order=order,
-            pass_kind=pt,
-            status=Pass.Status.ACTIVE,
-            start_at=now,
-        )
-
-        if pt == "time" :
-            pass_obj.remaining_minutes = (product.duration_hours or 0) * 60
-        else :
-            start_base = base_end if base_end else now
-            pass_obj.end_at = start_base + timedelta(days=(product.duration_days or 0))
-
-        if pt == "fixed" :
-            pass_obj.fixed_seat = order.selected_seat
-        elif pt == "locker" :
-            pass_obj.locker = order.selected_locker
-
-        pass_obj.full_clean()
-        pass_obj.save()
-
-        if pt == "fixed" :
-            SeatUsage.objects.create(
-                user=order.user,
-                pass_obj=pass_obj,
-                seat=order.selected_seat,
-                check_in_at=now,
-                expected_end_at=pass_obj.end_at,
-            )
-
-        elif pt == "locker" :
-            LockerUsage.objects.create(
-                user=order.user,
-                pass_obj=pass_obj,
-                locker=order.selected_locker,
-                assign_at=now,
-                unassign_at=pass_obj.end_at,
-            )
 
         return ok(
             {
-                "payment_id" : payment.id,
-                "payment_status" : payment.status,
-                "order" : {
-                    "id" : order.id,
-                    "status" : order.status,
+                "payment_id": payment.id,
+                "payment_status": payment.status,
+                "paid_at": payment.paid_at,
+                "order": {
+                    "id": order.id,
+                    "order_status": order.status,
                 },
-                "pass" : {
-                    "id" : pass_obj.id,
-                    "pass_kind" : pass_obj.pass_kind,
-                    "status" : pass_obj.status,
+                "pass": {
+                    "id": pass_obj.id,
+                    "status": pass_obj.status,
+                    "pass_kind": pass_obj.pass_kind,
+                    "remaining_minutes": pass_obj.remaining_minutes,
+                    "end_at": pass_obj.end_at,
+                    "fixed_seat_id": pass_obj.fixed_seat_id,
+                    "locker_id": pass_obj.locker_id,
                 },
             },
             status_code=201,
         )
-
 
 class AdminRefundAPIView(AdminAPIView):
     """

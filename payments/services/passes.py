@@ -36,7 +36,7 @@ def get_active_pass_for_update(*, user, pass_kind:str) -> Pass | None:
             pass_kind=pass_kind,
             status=Pass.Status.ACTIVE,
         )
-        .order_by("id")
+        .order_by("-id")
         .first()
     )
 
@@ -117,7 +117,7 @@ def _create_new_pass(*, order:Order, paid_at, actor_user=None)->Pass:
         product=product,
         pass_kind=pass_kind,
         status=Pass.Status.ACTIVE,
-        start=paid_at,
+        start_at=paid_at,
     )
 
     if pass_kind == Pass.PassKind.TIME:
@@ -155,7 +155,7 @@ def _create_new_pass(*, order:Order, paid_at, actor_user=None)->Pass:
             )
 
         pass_obj.locker = order.selected_locker
-        pass_obj.end_at = -_calculate_period_end_at(
+        pass_obj.end_at = _calculate_period_end_at(
             product=product,
             existing_pass=None,
             now=paid_at,
@@ -175,14 +175,14 @@ def _create_new_pass(*, order:Order, paid_at, actor_user=None)->Pass:
         if pass_kind == Pass.PassKind.FIXED:
             raise ConflictBusinessError(
                 message="이미 사용 중인 지정석입니다.",
-                code="fixe_seat_not_available",
+                code="fixed_seat_not_available",
                 detail={"seat_id" : order.selected_seat_id},
             )
         if pass_kind == Pass.PassKind.LOCKER:
             raise ConflictBusinessError(
                 message="이미 사용 중인 사물함입니다.",
                 code="locker_not_available",
-                detail={"seat_id" : order.selected_locker_id},
+                detail={"locker_id" : order.selected_locker_id},
             )
         raise
 
