@@ -379,37 +379,29 @@ class AdminRefundAPIView(AdminAPIView):
     - POST는 환불 생성(전체 환불)
     """
 
-    def get(self, request):
-        qs = (
-            Refund.objects
-              .select_related("payment","payment__order","admin_user")
-              .order_by("-created_at","-id")
-        )
-
-        payment_id = request.query_params.get("payment_id")
-        if payment_id:
-            qs = qs.filter(payment_id=payment_id)
-
-        data = AdminRefundReadSerializer(qs, many=True).data
-        return ok(data, meta={"count":qs.count()})
-
     def post(self, request):
         s = AdminRefundCreateSerializer(data=request.data)
         s.is_valid(raise_exception=True)
 
-        try:
-            refund = create_refund(
-                admin_user=request.user,
-                payment_id=s.validated_data["payment_id"],
-                amount=s.validated_data["amount"],
-                reason=s.validated_data.get("reason")
-            )
-        except RefundError as e:
-            return Response(
-                {"error":{"code":e.code, "message":e.message,"details":e.details}}
-            )
+        refund = create_refund(
+            admin_user=request.user,
+            payment_id=s.validated_data["payment_id"],
+            amount=s.validated_data.get("amount"),
+            reason=s.validated_data.get("reason"),
+        )
 
-        return ok(AdminRefundReadSerializer(refund).data, status_code=201)
+        return ok(
+            {
+                "refund_id": refund.id,
+                "payment_id": refund.payment_id,
+                "admin_user_id": refund.admin_user_id,
+                "amount": refund.amount,
+                "reason": refund.reason,
+                "status": refund.status,
+                "refunded_at": refund.refunded_at,
+            },
+            status_code=201,
+        )
 
 
 class AdminRefundRetrieveAPIView(AdminAPIView):
