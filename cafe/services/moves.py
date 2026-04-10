@@ -12,6 +12,7 @@ from __future__ import annotations
 from django.db import IntegrityError, transaction
 
 from cafe.models import Locker, LockerUsage, Pass, Seat, SeatUsage
+from cafe.services.expirations import expire_duc_passes
 from common.exceptions import ConflictBusinessError, NotFoundBusinessError, ValidationBusinessError
 from logs.services import LogAction, LogEntityType, write_log
 
@@ -144,6 +145,7 @@ def move_normal_seat(*, user, to_seat_id:int) -> SeatUsage:
     일반석 이동
     - 기존 SeatUsage에서 seat만 변경
     """
+    expire_duc_passes()  # 임시 만료처리 실행
     seat_usage = _get_current_normal_seat_usage_for_update(user=user)
 
     to_seat = (
@@ -221,6 +223,7 @@ def move_fixed_seat(*,user,to_seat_id:int) -> SeatUsage:
     지정석 이동
     - Pass.fixed_seat와 SEatUsage.seat를 같이 변경
     """
+    expire_duc_passes()  # 임시 만료처리 실행
     pass_obj, seat_usage = _get_current_fixed_pass_and_usage_for_update(user=user)
 
     to_seat = (
@@ -305,6 +308,7 @@ def move_fixed_seat(*, user, to_seat_id: int) -> SeatUsage:
     지정석 이동
     - Pass.fixed_seat와 SeatUsage.seat를 같이 변경
     """
+    expire_duc_passes()  # 임시 만료처리 실행
     pass_obj, seat_usage = _get_current_fixed_pass_and_usage_for_update(user=user)
 
     to_seat = (

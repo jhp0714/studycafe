@@ -15,6 +15,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from cafe.models import LockerUsage, Pass, SeatUsage
+from cafe.services.expirations import expire_duc_passes
 from common.exceptions import ConflictBusinessError, NotFoundBusinessError
 from logs.services import LogAction, LogEntityType, write_log
 from payments.models import Order, Payment
@@ -109,6 +110,8 @@ def pay_order(*, user, order_id:int, payment_method:str="mock") -> tuple[Payment
     7. order 상태 paid 변경
     8. 로그
     """
+    expire_duc_passes()     # 임시 만료처리 실행
+
     paid_at = timezone.now()
 
     order = (
