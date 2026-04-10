@@ -35,7 +35,7 @@ def _get_active_normal_pass_for_update(*, user) -> Pass:
         .filter(
             user=user,
             pass_kind=Pass.PassKind.FLAT,
-            stat=Pass.Status.ACTIVE,
+            status=Pass.Status.ACTIVE,
         )
         .order_by("-id")
         .first()
@@ -64,7 +64,7 @@ def _get_active_normal_pass_for_update(*, user) -> Pass:
     )
 
 
-def _calclate_normal_expected_end_at(*,pass_obj:Pass, now):
+def _calculate_normal_expected_end_at(*,pass_obj:Pass, now):
     """
     일반석 expected_end_at 계산
 
@@ -78,7 +78,7 @@ def _calclate_normal_expected_end_at(*,pass_obj:Pass, now):
         if pass_obj.end_at is None:
             raise ValidationBusinessError(
                 message="기간제 이용권의 종료 시간이 없습니다.",
-                code="flat_pass_end_at-required",
+                code="flat_pass_end_at_required",
                 detail={"pass_id":pass_obj.id},
             )
         return min(max_end_at, pass_obj.end_at)
@@ -87,7 +87,7 @@ def _calclate_normal_expected_end_at(*,pass_obj:Pass, now):
         remaining_minutes = pass_obj.remaining_minutes or 0
         if remaining_minutes <= 0:
             raise ConflictBusinessError(
-                message="남은 시가닝 없습니다.",
+                message="남은 시간이 없습니다.",
                 code="time_pass_no_remaining_minutes",
                 detail={"pass_id":pass_obj.id},
             )
@@ -101,7 +101,7 @@ def _calclate_normal_expected_end_at(*,pass_obj:Pass, now):
         detail={"pass_kind":pass_obj.pass_kind}
     )
 
-def _assert_checkinable_noraml_seat(*, user, seat:Seat) -> None:
+def _assert_checkinable_normal_seat(*, user, seat:Seat) -> None:
     """
     일반석 입실 가능 여부 검증
     """
@@ -154,9 +154,9 @@ def checkin_normal_seat(*, user, seat_id:int) -> SeatUsage:
         )
 
     pass_obj = _get_active_normal_pass_for_update(user=user)
-    _assert_checkinable_noraml_seat(user=user, seat=seat)
+    _assert_checkinable_normal_seat(user=user, seat=seat)
 
-    expected_end_at = _calclate_normal_expected_end_at(pass_obj=pass_obj, now=now)
+    expected_end_at = _calculate_normal_expected_end_at(pass_obj=pass_obj, now=now)
 
     try:
         seat_usage = SeatUsage.objects.create(

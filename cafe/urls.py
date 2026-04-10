@@ -3,7 +3,8 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     SeatViewSet, LockerViewSet, AdminSeatViewSet, AdminLockerViewSet,
-    AdminForceCheckoutAPIView
+    AdminForceCheckoutAPIView, NormalSeatCheckinAPIView, NormalSeatCheckoutAPIView,
+    SeatMoveAPIView, LockerMoveAPIView,
 )
 
 router = DefaultRouter()
@@ -18,4 +19,9 @@ urlpatterns = [
     path("", include(router.urls)),
     path("admin/", include(admin_router.urls)),
     path("admin/usage/force-checkout",AdminForceCheckoutAPIView.as_view(),name="admin-foce-checkout"),
+
+    path("usage/checkin", NormalSeatCheckinAPIView.as_view(), name="normal-seat_checkin"),
+    path("usage/checkout", NormalSeatCheckoutAPIView.as_view(), name="normal-seat-checkout"),
+    path("usage/move-seat", NormalSeatCheckoutAPIView.as_view(), name="seat-move"),
+    path("usage/move-locker", NormalSeatCheckoutAPIView.as_view(), name="locker-move"),
 ]

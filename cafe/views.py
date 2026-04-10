@@ -9,8 +9,12 @@ from .models import Seat, Locker, SeatUsage, LockerUsage
 from .serializers import (
     SeatReadSerializer, SeatAdminWriteSerializer,
     LockerReadSerializer, LockerAdminWriteSerializer,
-    AdminForceCheckoutSerializer,
+    AdminForceCheckoutSerializer, NormalSeatCheckinSerializer,
+    SeatMoveSerializer, LockerMoveSerializer,
 )
+from .services.checkins import checkin_normal_seat
+from .services.checkouts import checkout_normal_seat
+from .services.moves import move_seat, move_locker
 
 def ok(data=None, meta=None, status_code=200):
     payload = {"data": data if data is not None else {}}
@@ -172,4 +176,71 @@ class AdminForceCheckoutAPIView(APIView):
                 "reason":reason,
             },
             status_code=status.HTTP_200_OK,
+        )
+
+
+class NormalSeatCheckinAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        s = NormalSeatCheckinSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        seat_usage = checkin_normal_seat(user=request.user, seat_id=s.validated_data["seat_id"])
+
+        return ok(
+            {
+                "seat_usage_id":seat_usage.id,
+                "seat_id":seat_usage.seat_id,
+                "pass_id":seat_usage.pass_obj_id,
+                "pass_kind":seat_usage.pass_obj.pass_kind,
+                "check_in_at":seat_usage.check_in_at,
+                "expected_end_at":seat_usage.expected_end_at,
+            },
+            status_code=201,
+        )
+
+
+class NormalSeatCheckoutAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        result = checkout_normal_seat(user=request.user)
+        return ok(result)
+
+
+class SeatMoveAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        s = SeatMoveSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        result = move_seat(
+            user=request.user,
+            to_seat_id=s.validated_data["seat_id"],
+        )
+
+        return ok(result)
+
+
+class LockerMoveAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        s = LockerMoveSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        locker_usage = move_locker(
+            user=request.user,
+            to_locker_id=s.validated_data["locker_id"],
+        )
+
+        return ok(
+            {
+                "locker_usage_id": locker_usage.id,
+                "locker_id": locker_usage.locker_id,
+                "pass_id": locker_usage.pass_obj_id,
+                "unassign_at": locker_usage.unassign_at,
+            }
         )
