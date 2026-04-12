@@ -1,11 +1,15 @@
 from rest_framework import serializers
 from .models import Product, Order, Payment, Refund
 from cafe.models import Seat, Locker, Pass
+from .services.products import get_product_purchase_status
 
 class ProductReadSerializer(serializers.ModelSerializer):
     duration_hours = serializers.IntegerField(required=False, allow_null=True)
     duration_days = serializers.IntegerField(required=False, allow_null=True)
     is_active = serializers.BooleanField()
+
+    is_purchasable = serializers.SerializerMethodField()
+    purchase_block_reason = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -16,8 +20,21 @@ class ProductReadSerializer(serializers.ModelSerializer):
             "duration_hours",
             "duration_days",
             "price",
-            "is_active"
+            "is_active",
+            "is_purchasable",
+            "purchase_block_reason",
         ]
+
+    def _get_status_info(self, obj):
+        request = self.context.get("request")
+        user = request.user if request and request.user.is_authenticated else None
+        return get_product_purchase_status(product=obj, user=user)
+
+    def get_is_purchasable(self, obj):
+        return self._get_status_info(obj)["is_purchasable"]
+
+    def get_purchase_block_reason(self, obj):
+        return self._get_status_info(obj)["reason_code"]
 
 
 

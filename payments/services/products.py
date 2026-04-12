@@ -78,7 +78,7 @@ def is_product_purchasable(*,product:Product,user=None) -> tuple[bool, str|None]
     return False, "unsupported_product_type"
 
 
-def get_product_pourchase_status(*, product:Product, user=None) -> dict:
+def get_product_purchase_status(*, product:Product, user=None) -> dict:
     is_purchasable, reason_code = is_product_purchasable(product=product, user=user)
 
     reason_messages = {
