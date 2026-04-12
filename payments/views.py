@@ -21,6 +21,8 @@ from .serializers import (
 )
 from .services.refunds import create_refund, RefundError
 from .services.payments import pay_order
+from .services.orders import create_order
+
 
 def ok(data=None, meta=None, status_code=200):
     payload = {"data":data if data is not None else {}}
@@ -188,20 +190,12 @@ class OrderAPIView(APIView):
         s = OrderCreateSerializer(data=request.data, context={"request" : request})
         s.is_valid(raise_exception=True)
 
-        product = s.validated_data["product"]
-        selected_seat = s.validated_data.get("selected_seat")
-        selected_locker = s.validated_data.get("selected_locker")
-
-        order = Order(
-            order_no=gen_order_no(),
+        order =create_order(
             user=request.user,
-            product=product,
-            selected_seat=selected_seat,
-            selected_locker=selected_locker,
-            status=Order.Status.CREATED,
+            prodcut_id=s.validated_data["product_id"],
+            seat_id=s.validated_data.get("seat_id"),
+            locker_id=s.validated_data.get("locker_id"),
         )
-        order.full_clean()
-        order.save()
 
         return ok(
             {"order_id" : order.id, "order_status" : order.status},

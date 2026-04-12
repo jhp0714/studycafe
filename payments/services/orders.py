@@ -92,4 +92,90 @@ def _validate_selection_for_product(*,user,product:Product, seat_id:int|None,loc
 
         return selected_seat, None
 
-    # locker부터 하면 된다.
+    if product_type == Product.ProductType.LOCKER:
+        if seat_id is not None:
+            raise ValidationBusinessError(
+                message="사물함 상품에는 좌석을 선택할 수 없습니다.",
+                code="seat_not_allowed_for_locker_product",
+            )
+
+        active_locker_pass = _get_active_pass(user=user,pass_kind=Pass.PassKind.LOCKER)
+
+        if active_locker_pass:
+            if locker_id is not None:
+                raise ValidationBusinessError(
+                    message="사물함 연장 구매 시 사물함을 다시 선택할 수 없습니다.",
+                    code="locker_selection_not_allowed_for_locker_extension",
+                )
+            return None, None
+
+        if locker_id is None:
+            raise NotFoundBusinessError(
+                message="사물함을 첫 구매 시 사물함 선택이 필요합니다.",
+                code="locker_not_found",
+                detail={"locker_id":locker_id},
+            )
+
+        selected_locker = Locker.objects.filter(id=locker_id).first()
+        if selected_locker is None:
+            raise NotFoundBusinessError(
+                message="사물함을 찾을 수 없습니다.",
+                code="locker_not_found",
+                detail={"locker_id":locker_id},
+            )
+
+        if not selected_locker.available:
+            raise ConflictBusinessError(
+                message="사용 불가능한 사물함입니다.",
+                code="locker_not_available",
+                detail={"locker_id":selected_locker.id},
+            )
+
+        return None, selected_locker
+
+    raise ValidationBusinessError(
+        message="지원하지 않는 상품 유형입니다.",
+        code="unsupported_product_type",
+        detail={"product_type":product_type},
+    )
+
+
+@transaction.atomic
+def create_order(*,user,product_id:int,seat_id:int|None=None,locker_id:int|None=None)->Order:
+    product = Product.objects.filter(id=product_id).first()
+    if product is None:
+        raise NotFoundBusinessError(
+            message="상품을 찾을 수 없습니다.",
+            code="product_not_found",
+            detail={"product_id":product_id},
+        )
+
+    is_purchasable, reason_code = is_product_purchasable(product=product, user=user)
+    if not is_purchasable:
+        raise ConflictBusinessError(
+            message="현재 구매할 수 없는 상품입니다.",
+            code=reason_code or "product_not_purchasable",
+            detail={"product_id":product_id},
+        )
+
+    selected_seat, selected_locker = _validate_selection_for_product(user=user, product=product,seat_id=seat_id,locker_id=locker_id)
+
+    order = Order.objects.create(user=user,product=product,status=Order.Status.CREATED,selected_seat=selected_seat,seleted_locker=selected_locker)
+
+    write_log(
+        actor_user=user,
+        target_user=user,
+        action=LogAction.ORDER_CREATED,
+        entity_type=LogEntityType.ORDER,
+        entity_id=order.id,
+        message="주문 생성 완료",
+        metadata={
+            "order_id":order.id,
+            "product_id":product.id,
+            "product_type":product.product_type,
+            "selected_seat_id":selected_seat.id if selected_seat else None,
+            "selected_locker_id":selected_locker.id if selected_locker else None,
+        },
+    )
+
+    return order
