@@ -12,7 +12,7 @@ from __future__ import annotations
 from django.db import IntegrityError, transaction
 
 from cafe.models import Locker, LockerUsage, Pass, Seat, SeatUsage
-from cafe.services.expirations import expire_duc_passes
+from cafe.services.expirations import expire_due_passes
 from common.exceptions import ConflictBusinessError, NotFoundBusinessError, ValidationBusinessError
 from logs.services import LogAction, LogEntityType, write_log
 
@@ -105,7 +105,7 @@ def _get_current_locker_pass_and_usage_for_update(*, user) -> tuple[Pass, Locker
     pass_obj = (
         Pass.objects
         .select_for_update()
-        .select_relate("locker","product")
+        .select_related("locker","product")
         .filter(
             user=user,
             pass_kind=Pass.PassKind.LOCKER,
@@ -131,7 +131,7 @@ def _get_current_locker_pass_and_usage_for_update(*, user) -> tuple[Pass, Locker
 
     if locker_usage is None:
         raise NotFoundBusinessError(
-            message="현재 점유 중인 사뭃마 정보가 없습니다.",
+            message="현재 점유 중인 사물함 정보가 없습니다.",
             code="locker_usage_not_found",
             detail={"pass_id":pass_obj.id}
         )
@@ -145,7 +145,7 @@ def move_normal_seat(*, user, to_seat_id:int) -> SeatUsage:
     일반석 이동
     - 기존 SeatUsage에서 seat만 변경
     """
-    expire_duc_passes()  # 임시 만료처리 실행
+    expire_due_passes()  # 임시 만료처리 실행
     seat_usage = _get_current_normal_seat_usage_for_update(user=user)
 
     to_seat = (
@@ -178,10 +178,10 @@ def move_normal_seat(*, user, to_seat_id:int) -> SeatUsage:
             detail={"seat_id":to_seat.id}
         )
 
-    if SeatUsage.objects.filter(seat=to_seat).exclude(id=seat_usage).exists():
+    if SeatUsage.objects.filter(seat=to_seat).exclude(id=seat_usage.id).exists():
         raise ConflictBusinessError(
             message="이미 사용 중인 좌석입니다.",
-            code="seate_already_occupied",
+            code="seat_already_occupied",
             detail={"seat_id":to_seat.id},
         )
 
@@ -192,8 +192,8 @@ def move_normal_seat(*, user, to_seat_id:int) -> SeatUsage:
     except IntegrityError:
         raise ConflictBusinessError(
             message="좌석 이동 중 충돌이 발생했습니다.",
-            code="seat_move_confilict",
-            detail={"from_seate_id":from_seat.id,"to_seat_id":to_seat.id},
+            code="seat_move_conflict",
+            detail={"from_seat_id":from_seat.id,"to_seat_id":to_seat.id},
         )
 
     write_log(
@@ -223,7 +223,7 @@ def move_fixed_seat(*,user,to_seat_id:int) -> SeatUsage:
     지정석 이동
     - Pass.fixed_seat와 SEatUsage.seat를 같이 변경
     """
-    expire_duc_passes()  # 임시 만료처리 실행
+    expire_due_passes()  # 임시 만료처리 실행
     pass_obj, seat_usage = _get_current_fixed_pass_and_usage_for_update(user=user)
 
     to_seat = (
@@ -308,7 +308,7 @@ def move_fixed_seat(*, user, to_seat_id: int) -> SeatUsage:
     지정석 이동
     - Pass.fixed_seat와 SeatUsage.seat를 같이 변경
     """
-    expire_duc_passes()  # 임시 만료처리 실행
+    expire_due_passes()  # 임시 만료처리 실행
     pass_obj, seat_usage = _get_current_fixed_pass_and_usage_for_update(user=user)
 
     to_seat = (

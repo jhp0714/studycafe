@@ -185,7 +185,6 @@ def create_refund(
         admin_user=admin_user,
         amount=refund_amount,
         reason=reason or "",
-        status=Refund.Status.APPROVED,
         refunded_at=refunded_at,
     )
 

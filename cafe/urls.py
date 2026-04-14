@@ -4,7 +4,7 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     SeatViewSet, LockerViewSet, AdminSeatViewSet, AdminLockerViewSet,
     AdminForceCheckoutAPIView, NormalSeatCheckinAPIView, NormalSeatCheckoutAPIView,
-    SeatMoveAPIView, LockerMoveAPIView,
+    SeatMoveAPIView, LockerMoveAPIView, NormalSeatExtendAPIView
 )
 
 router = DefaultRouter()
@@ -22,6 +22,7 @@ urlpatterns = [
 
     path("usage/checkin", NormalSeatCheckinAPIView.as_view(), name="normal-seat_checkin"),
     path("usage/checkout", NormalSeatCheckoutAPIView.as_view(), name="normal-seat-checkout"),
-    path("usage/move-seat", NormalSeatCheckoutAPIView.as_view(), name="seat-move"),
-    path("usage/move-locker", NormalSeatCheckoutAPIView.as_view(), name="locker-move"),
+    path("usage/move-seat", SeatMoveAPIView.as_view(), name="seat-move"),
+    path("usage/move-locker", LockerMoveAPIView.as_view(), name="locker-move"),
+    path("usage/extend", NormalSeatExtendAPIView.as_view(), name="normal-seat-extend"),
 ]

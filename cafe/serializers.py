@@ -60,3 +60,7 @@ class SeatMoveSerializer(serializers.Serializer):
 
 class LockerMoveSerializer(serializers.Serializer):
     locker_id = serializers.IntegerField(min_value=1)
+
+
+class NormalSeatExtendSerializer(serializers.Serializer):
+    hours = serializers.IntegerField(min_value=1, max_value=6)

@@ -18,7 +18,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from cafe.models import Pass, Seat, SeatUsage
-from cafe.services import expire_duc_passes
+from cafe.services.expirations import expire_due_passes
 from common.exceptions import ConflictBusinessError, NotFoundBusinessError, ValidationBusinessError
 from logs.services import LogAction, LogEntityType, write_log
 
@@ -139,7 +139,7 @@ def checkin_normal_seat(*, user, seat_id:int) -> SeatUsage:
     """
     일반석 입실
     """
-    expire_duc_passes()  # 임시 만료처리 실행
+    expire_due_passes()  # 임시 만료처리 실행
     now = timezone.now()
 
     seat = (

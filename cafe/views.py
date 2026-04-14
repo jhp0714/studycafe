@@ -11,10 +11,12 @@ from .serializers import (
     LockerReadSerializer, LockerAdminWriteSerializer,
     AdminForceCheckoutSerializer, NormalSeatCheckinSerializer,
     SeatMoveSerializer, LockerMoveSerializer,
+    NormalSeatExtendSerializer,
 )
 from .services.checkins import checkin_normal_seat
-from .services.checkouts import checkout_normal_seat
+from .services.checkouts import checkout_normal_seat, force_checkout_normal_seat
 from .services.moves import move_seat, move_locker
+from .services.extensions import extend_normal_seat_usage
 
 def ok(data=None, meta=None, status_code=200):
     payload = {"data": data if data is not None else {}}
@@ -160,22 +162,30 @@ class AdminForceCheckoutAPIView(APIView):
     """
     permission_classes = [IsAuthenticated, IsAdminRole]
 
-    def post(self, request):
-        serializer = AdminForceCheckoutSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+    def post(self, request) :
+        s = AdminForceCheckoutSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
 
-        user_id = serializer.validated_data["user_id"]
-        reason = serializer.validated_data.get("reason","")
-
-        # 강제 퇴실 로식 작성 시 수정
+        result = force_checkout_normal_seat(
+            admin_user=request.user,
+            target_user_id=s.validated_data["user_id"],
+            reason=s.validated_data.get("reason"),
+        )
 
         return ok(
             {
-                "user_id":user_id,
-                "checkout_type":"force",
-                "reason":reason,
-            },
-            status_code=status.HTTP_200_OK,
+                "seat_usage_id" : result["seat_usage_id"],
+                "seat_id" : result["seat_id"],
+                "seat_no" : result["seat_no"],
+                "user_id" : result["user_id"],
+                "pass_id" : result["pass_id"],
+                "pass_kind" : result["pass_kind"],
+                "checked_out_at" : result["checked_out_at"],
+                "used_minutes" : result["used_minutes"],
+                "remaining_minutes_before" : result["remaining_minutes_before"],
+                "remaining_minutes_after" : result["remaining_minutes_after"],
+                "reason" : result.get("reason"),
+            }
         )
 
 
@@ -242,5 +252,28 @@ class LockerMoveAPIView(APIView):
                 "locker_id": locker_usage.locker_id,
                 "pass_id": locker_usage.pass_obj_id,
                 "unassign_at": locker_usage.unassign_at,
+            }
+        )
+
+
+class NormalSeatExtendAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        s = NormalSeatExtendSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+
+        seat_usage = extend_normal_seat_usage(
+            user=request.user,
+            hours=s.validated_data["hours"],
+        )
+
+        return ok(
+            {
+                "seat_usage_id": seat_usage.id,
+                "seat_id": seat_usage.seat_id,
+                "pass_id": seat_usage.pass_obj_id,
+                "pass_kind": seat_usage.pass_obj.pass_kind,
+                "expected_end_at": seat_usage.expected_end_at,
             }
         )

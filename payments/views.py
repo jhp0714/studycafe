@@ -193,7 +193,7 @@ class OrderAPIView(APIView):
 
         order =create_order(
             user=request.user,
-            prodcut_id=s.validated_data["product_id"],
+            product_id=s.validated_data["product_id"],
             seat_id=s.validated_data.get("seat_id"),
             locker_id=s.validated_data.get("locker_id"),
         )
@@ -392,7 +392,6 @@ class AdminRefundAPIView(AdminAPIView):
                 "admin_user_id": refund.admin_user_id,
                 "amount": refund.amount,
                 "reason": refund.reason,
-                "status": refund.status,
                 "refunded_at": refund.refunded_at,
             },
             status_code=201,

@@ -18,6 +18,7 @@ class LogAction:
     SEAT_AUTO_CHECKED_OUT = "seat_auto_checked_out"
     SEAT_FORCE_CHECKED_OUT = "seat_force_checked_out"
     SEAT_MOVED = "seat_moved"
+    SEAT_EXTENDED = "seat-extended"
     FIXED_SEAT_MOVED = "fixed_seat_moved"
 
     # 사물함

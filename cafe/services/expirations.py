@@ -62,7 +62,7 @@ def _expire_single_pass(*,pass_obj:Pass,now) -> dict:
     """
     cleanup_result = _cleanup_expired_pass_usage(pass_obj=pass_obj)
 
-    pass_obj.status - Pass.Status.EXPIRED
+    pass_obj.status = Pass.Status.EXPIRED
     pass_obj.save(update_fields=["status"])
 
     write_log(
@@ -94,7 +94,7 @@ def _expire_single_pass(*,pass_obj:Pass,now) -> dict:
 
 
 @transaction.atomic
-def expire_duc_passes(*, now=None) -> dict:
+def expire_due_passes(*, now=None) -> dict:
     """
     만료 대상 pass 일괄 처리
 

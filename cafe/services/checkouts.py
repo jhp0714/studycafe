@@ -14,6 +14,7 @@ from math import ceil
 from django.db import transaction
 from django.utils import timezone
 
+from accounts.models import User
 from cafe.models import Pass, SeatUsage, Seat
 from common.exceptions import ConflictBusinessError, NotFoundBusinessError, ValidationBusinessError
 from logs.services import LogAction, LogEntityType, write_log
@@ -239,3 +240,54 @@ def auto_checkout_expired_normal_seats(*, now=None) -> dict:
         "processed_seat_usage_ids":[item["seat_usage_id"] for item in results],
         "processed_user_ids":[item["user_id"] for item in results],
     }
+
+
+@transaction.atomic
+def force_checkout_normal_seat(*,admin_user,target_user_id:int,reason:str|None=None,checked_out_at=None)->dict:
+    """
+    관리자 강제 퇴실
+    -일반석 사용자만 대상
+    """
+    current_time = checked_out_at or timezone.now()
+
+    target_user = User.objects.filter(id=target_user_id).firstr()
+    if target_user is None:
+        raise NotFoundBusinessError(
+            message="사용자를 찾을 수 없습니다.",
+            code="user_not_found",
+            detail={"user_id":target_user_id},
+        )
+
+    seat_usage = _get_current_normal_seat_usage_for_update(user=target_user)
+
+    result = _checkout_normal_seat_usage(
+        seat_usage=seat_usage,
+        checked_out_at=current_time,
+        action=LogAction.SEAT_FORCE_CHECKED_OUT,
+        actor_user=admin_user,
+        message="강제 퇴실 완료",
+    )
+
+    result["reason"] = reason
+
+    write_log(
+        actor_user=admin_user,
+        target_user=target_user,
+        action=LogAction.SEAT_FORCE_CHECKED_OUT,
+        entity_type=LogEntityType.SEAT_USAGE,
+        entity_id=result["seat_usage_id"],
+        message="관리자 강제 퇴실 사유 기록",
+        metadata={
+            "reason" : reason,
+            "seat_id" : result["seat_id"],
+            "seat_no" : result["seat_no"],
+            "pass_id" : result["pass_id"],
+            "pass_kind" : result["pass_kind"],
+            "checked_out_at" : current_time.isoformat(),
+            "used_minutes" : result["used_minutes"],
+            "remaining_minutes_before" : result["remaining_minutes_before"],
+            "remaining_minutes_after" : result["remaining_minutes_after"],
+        },
+    )
+
+    return result

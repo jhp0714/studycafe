@@ -98,7 +98,7 @@ class Payment(models.Model):
 
     id = models.BigAutoField(primary_key=True)
 
-    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="payment")
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name="payments")
     amount = models.PositiveIntegerField()
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.READY)
     method = models.CharField(max_length=20, default="mock")

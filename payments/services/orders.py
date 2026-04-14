@@ -160,7 +160,7 @@ def create_order(*,user,product_id:int,seat_id:int|None=None,locker_id:int|None=
 
     selected_seat, selected_locker = _validate_selection_for_product(user=user, product=product,seat_id=seat_id,locker_id=locker_id)
 
-    order = Order.objects.create(user=user,product=product,status=Order.Status.CREATED,selected_seat=selected_seat,seleted_locker=selected_locker)
+    order = Order.objects.create(user=user,product=product,status=Order.Status.CREATED,selected_seat=selected_seat,selected_locker=selected_locker)
 
     write_log(
         actor_user=user,
