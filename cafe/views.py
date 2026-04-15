@@ -48,7 +48,7 @@ class SeatViewSet(viewsets.ReadOnlyModelViewSet):
         # 선택 가능한 좌석
         available = self.request.query_params.get("available")
         if available is not None and available == "true":
-            qs = qs.filter(_is_used=False)
+            qs = qs.filter(_is_used=False, available=True)
 
         return qs
 
@@ -80,7 +80,7 @@ class LockerViewSet(viewsets.ReadOnlyModelViewSet):
 
         available = self.request.query_params.get("available")
         if available is not None and available == "true":
-            qs = qs.filter(_is_used=False)
+            qs = qs.filter(_is_used=False, available=True)
 
         return qs
 
@@ -157,8 +157,6 @@ class AdminLockerViewSet(viewsets.ModelViewSet):
 class AdminForceCheckoutAPIView(APIView):
     """
     POST /admin/usage/force-checkout
-
-    강제 퇴실 처리 로직은 추후 구현
     """
     permission_classes = [IsAuthenticated, IsAdminRole]
 

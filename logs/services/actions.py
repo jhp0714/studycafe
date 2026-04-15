@@ -18,7 +18,7 @@ class LogAction:
     SEAT_AUTO_CHECKED_OUT = "seat_auto_checked_out"
     SEAT_FORCE_CHECKED_OUT = "seat_force_checked_out"
     SEAT_MOVED = "seat_moved"
-    SEAT_EXTENDED = "seat-extended"
+    SEAT_EXTENDED = "seat_extended"
     FIXED_SEAT_MOVED = "fixed_seat_moved"
 
     # 사물함
@@ -34,6 +34,7 @@ class LogAction:
     BATCH_AUTO_CHECKOUT_RUN = "batch_auto_checkout_run"
     BATCH_PASS_EXPIRE_RUN = "batch_pass_expire_run"
     BATCH_CLEANUP_RUN = "batch_cleanup_run"
+    BATCH_ALL_RUN = "batch_all_run"
 
 
 class LogEntityType:

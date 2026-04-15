@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from django.db import transaction
 
-from cafe.models import Pass, Locker, Seat
+from cafe.models import Pass, Locker, Seat, SeatUsage, LockerUsage
 from common.exceptions import ConflictBusinessError, NotFoundBusinessError, ValidationBusinessError
 from logs.services import LogAction, LogEntityType, write_log
 from payments.models import Order, Product
@@ -90,6 +90,12 @@ def _validate_selection_for_product(*,user,product:Product, seat_id:int|None,loc
                 detail={"seat_id":selected_seat.id}
             )
 
+        if SeatUsage.objects.filter(seat=selected_seat).exists() :
+            raise ConflictBusinessError(
+                message="이미 사용 중인 지정석입니다.",
+                code="fixed_seat_already_occupied",
+                detail={"seat_id" : selected_seat.id},
+            )
         return selected_seat, None
 
     if product_type == Product.ProductType.LOCKER:
@@ -112,7 +118,7 @@ def _validate_selection_for_product(*,user,product:Product, seat_id:int|None,loc
         if locker_id is None:
             raise NotFoundBusinessError(
                 message="사물함을 첫 구매 시 사물함 선택이 필요합니다.",
-                code="locker_not_found",
+                code="locker_required_for_locker_product",
                 detail={"locker_id":locker_id},
             )
 
@@ -129,6 +135,12 @@ def _validate_selection_for_product(*,user,product:Product, seat_id:int|None,loc
                 message="사용 불가능한 사물함입니다.",
                 code="locker_not_available",
                 detail={"locker_id":selected_locker.id},
+            )
+        if LockerUsage.objects.filter(locker=selected_locker).exists() :
+            raise ConflictBusinessError(
+                message="이미 사용 중인 사물함입니다.",
+                code="locker_already_occupied",
+                detail={"locker_id" : selected_locker.id},
             )
 
         return None, selected_locker

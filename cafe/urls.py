@@ -20,7 +20,7 @@ urlpatterns = [
     path("admin/", include(admin_router.urls)),
     path("admin/usage/force-checkout",AdminForceCheckoutAPIView.as_view(),name="admin-foce-checkout"),
 
-    path("usage/checkin", NormalSeatCheckinAPIView.as_view(), name="normal-seat_checkin"),
+    path("usage/checkin", NormalSeatCheckinAPIView.as_view(), name="normal-seat-checkin"),
     path("usage/checkout", NormalSeatCheckoutAPIView.as_view(), name="normal-seat-checkout"),
     path("usage/move-seat", SeatMoveAPIView.as_view(), name="seat-move"),
     path("usage/move-locker", LockerMoveAPIView.as_view(), name="locker-move"),

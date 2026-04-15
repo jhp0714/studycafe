@@ -22,7 +22,7 @@ from logs.services import LogAction, LogEntityType, write_log
 
 def _get_current_normal_seat_usage_for_update(*, user) -> SeatUsage:
     """
-    현재 사용자의 일반선 SeatUsage 조회
+    현재 사용자의 일반석 SeatUsage 조회
     """
     seat_usage = (
         SeatUsage.objects
@@ -41,7 +41,7 @@ def _get_current_normal_seat_usage_for_update(*, user) -> SeatUsage:
     if seat_usage.seat.seat_type != seat_usage.seat.SeatType.NORMAL:
         raise ValidationBusinessError(
             message="일반석만 퇴실만 처리할 수 있습니다.",
-            code="normal_seat_choeckout_only",
+            code="normal_seat_checkout_only",
             detail={
                 "seat_usage_id":seat_usage.id,
                 "seat_type":seat_usage.seat.seat_type,
@@ -110,7 +110,7 @@ def _checkout_normal_seat_usage(*,seat_usage:SeatUsage,checked_out_at,action:str
 
     if seat.seat_type != seat.SeatType.NORMAL:
         raise ValidationBusinessError(
-            message="일반석 퇴살만 처리할 수 있습니다.",
+            message="일반석 퇴실만 처리할 수 있습니다.",
             code="normal_seat_checkout_only",
             detail={
                 "seat_usage_id":seat_usage.id,
@@ -250,7 +250,7 @@ def force_checkout_normal_seat(*,admin_user,target_user_id:int,reason:str|None=N
     """
     current_time = checked_out_at or timezone.now()
 
-    target_user = User.objects.filter(id=target_user_id).firstr()
+    target_user = User.objects.filter(id=target_user_id).first()
     if target_user is None:
         raise NotFoundBusinessError(
             message="사용자를 찾을 수 없습니다.",

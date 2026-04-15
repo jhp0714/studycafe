@@ -106,47 +106,29 @@ class PaymentCreateSerailizer(serializers.Serializer):
         default="mock",
     )
 
-    def validate(self, attrs) :
+    def validate(self, attrs):
         user = self.context["request"].user
 
-        try :
-            order = (
-                Order.objects
-                .select_related("product", "selected_seat", "selected_locker")
-                .get(id=attrs["order_id"], user=user)
-            )
-        except Order.DoesNotExist :
+        order = (
+            Order.objects
+            .select_related("product", "selected_seat", "selected_locker", "pass_obj")
+            .filter(id=attrs["order_id"], user=user)
+            .first()
+        )
+        if order is None:
             raise serializers.ValidationError({
-                "order_id" : "주문을 찾을 수 없습니다."
+                "order_id": "주문을 찾을 수 없습니다."
             })
 
-        if order.status != Order.Status.CREATED :
+        if order.status != Order.Status.CREATED:
             raise serializers.ValidationError({
-                "order_id" : "결제 가능한 주문 상태가 아닙니다."
+                "order_id": "결제 가능한 주문 상태가 아닙니다."
             })
 
-        if order.payments.filter(status=Payment.Status.PAID).exists() :
+        if order.payments.filter(status=Payment.Status.PAID).exists():
             raise serializers.ValidationError({
-                "order_id" : "이미 결제된 주문입니다."
+                "order_id": "이미 결제된 주문입니다."
             })
-
-        pt = order.product.product_type
-
-        if pt == "fixed" and order.selected_seat_id is None :
-            raise serializers.ValidationError({
-                "order_id" : "fixed 주문에 selected_seat이 없습니다."
-            })
-
-        if pt == "locker" and order.selected_locker_id is None :
-            raise serializers.ValidationError({
-                "order_id" : "locker 주문에 selected_locker가 없습니다."
-            })
-
-        if pt in ("time", "flat") :
-            if order.selected_seat_id is not None or order.selected_locker_id is not None :
-                raise serializers.ValidationError({
-                    "order_id" : "time/flat 주문은 선택 자원을 가지면 안 됩니다."
-                })
 
         attrs["order"] = order
         return attrs

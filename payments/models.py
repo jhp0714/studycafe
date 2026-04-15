@@ -67,26 +67,30 @@ class Order(models.Model):
 
     def clean(self) :
         super().clean()
+
         if not self.product_id :
             return
 
         pt = self.product.product_type
 
-        if pt == "fixed" :
-            if not self.selected_seat_id :
-                raise ValidationError({"selected_seat" : "fixed 상품 주문은 selected_seat이 필요합니다."})
-            if self.selected_locker_id :
-                raise ValidationError({"selected_locker" : "fixed 상품 주문은 selected_locker를 가질 수 없습니다."})
-
-        elif pt == "locker" :
-            if not self.selected_locker_id :
-                raise ValidationError({"selected_locker" : "locker 상품 주문은 selected_locker가 필요합니다."})
-            if self.selected_seat_id :
-                raise ValidationError({"selected_seat" : "locker 상품 주문은 selected_seat을 가질 수 없습니다."})
-
-        else :  # time/flat
+        if pt in (Product.ProductType.TIME, Product.ProductType.FLAT) :
             if self.selected_seat_id or self.selected_locker_id :
-                raise ValidationError({"selection" : "time/flat 상품 주문은 좌석/사물함 선택을 가질 수 없습니다."})
+                raise ValidationError("시간권/기간권 상품은 좌석/사물함을 선택할 수 없습니다.")
+            return
+
+        if pt == Product.ProductType.FIXED :
+            if self.selected_locker_id :
+                raise ValidationError("지정석 상품에는 사물함을 선택할 수 없습니다.")
+            # seat 필수 여부는 create_order() 서비스에서 판단
+            return
+
+        if pt == Product.ProductType.LOCKER :
+            if self.selected_seat_id :
+                raise ValidationError("사물함 상품에는 좌석을 선택할 수 없습니다.")
+            # locker 필수 여부는 create_order() 서비스에서 판단
+            return
+
+        raise ValidationError("지원하지 않는 상품 유형입니다.")
 
 
 class Payment(models.Model):

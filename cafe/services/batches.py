@@ -13,6 +13,7 @@ from django.utils import timezone
 from cafe.services.checkouts import auto_checkout_expired_normal_seats
 from cafe.services.expirations import expire_due_passes
 from logs.services import LogAction, LogEntityType, write_log
+from cafe.services.cleanup import run_cleanup_jobs
 
 
 @transaction.atomic
@@ -82,31 +83,40 @@ def run_all_batches(*, now=None) -> dict:
 
     auto_checkout_result = auto_checkout_expired_normal_seats(now=current_time)
     expire_result = expire_due_passes(now=current_time)
+    cleanup_result = run_cleanup_jobs(now=current_time)
 
     result = {
         "executed_at": current_time,
         "auto_checkout": auto_checkout_result,
         "expire_passes": expire_result,
+        "cleanup": cleanup_result,
         "total_processed_count": (
             auto_checkout_result["processed_count"]
             + expire_result["processed_count"]
+            + cleanup_result["total_processed_count"]
         ),
     }
 
     write_log(
         actor_user=None,
         target_user=None,
-        action=LogAction.BATCH_CLEANUP_RUN,
+        action=LogAction.BATCH_ALL_RUN,
         entity_type=LogEntityType.BATCH,
         entity_id=None,
         message="전체 배치 실행",
         metadata={
-            "executed_at": current_time.isoformat(),
-            "auto_checkout_processed_count": auto_checkout_result["processed_count"],
-            "expire_processed_count": expire_result["processed_count"],
-            "auto_checkout_seat_usage_ids": auto_checkout_result["processed_seat_usage_ids"],
-            "expire_pass_ids": expire_result["processed_pass_ids"],
-            "total_processed_count": result["total_processed_count"],
+            "executed_at" : current_time.isoformat(),
+            "auto_checkout_processed_count" : auto_checkout_result["processed_count"],
+            "expire_processed_count" : expire_result["processed_count"],
+            "cleanup_processed_count" : cleanup_result["total_processed_count"],
+            "auto_checkout_seat_usage_ids" : auto_checkout_result["processed_seat_usage_ids"],
+            "expire_pass_ids" : expire_result["processed_pass_ids"],
+            "cleanup_deleted_seat_usage_ids" : cleanup_result["inactive_usage_cleanup"]["deleted_seat_usage_ids"],
+            "cleanup_deleted_locker_usage_ids" : cleanup_result["inactive_usage_cleanup"]["deleted_locker_usage_ids"],
+            "cleanup_updated_pass_ids" : cleanup_result["expired_pass_cleanup"]["updated_pass_ids"],
+            "cleanup_mismatch_deleted_seat_usage_count" : cleanup_result["mismatch_cleanup"]["deleted_seat_usage_count"],
+            "cleanup_mismatch_deleted_locker_usage_count" : cleanup_result["mismatch_cleanup"]["deleted_locker_usage_count"],
+            "total_processed_count" : result["total_processed_count"],
         },
     )
 
