@@ -25,11 +25,9 @@ v.14
 
 ```json
 {
-	"error":{
-		"code":"SEAT_NOT_AVAILABLE",
-		"message":"해당 좌석은 사용 중입니다.",
-		"details":{}
-		}
+	"message":"해당 좌석은 사용 중입니다.",
+	"code":"SEAT_NOT_AVAILABLE",
+	"details":{}
 }
 
 ```

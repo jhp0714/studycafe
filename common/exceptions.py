@@ -1,65 +1,42 @@
 from __future__ import annotations
 
-from typing import Any
+from rest_framework import status
+from rest_framework.exceptions import APIException
 
 
-class BusinessError(Exception):
-    """
-    모든 비즈니스 예외의 부모 클래스
+class BusinessError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_code = "BUSINESS_ERROR"
 
-    사용 목적:
-    - 서비스 레이어에서 raise
-    - 전역 exception handler에서 일관된 응답으로 변환
-    """
-
-    default_message = "비즈니스 로직 처리 중 오류가 발생했습니다."
-    default_code = "business_error"
-    default_status_code = 400
-
-    def __init__(
-        self,
-        message: str | None = None,
-        *,
-        code: str | None = None,
-        status_code: int | None = None,
-        detail: dict[str, Any] | None = None,
-    ) -> None:
-        self.message = message or self.default_message
-        self.code = code or self.default_code
-        self.status_code = status_code or self.default_status_code
+    def __init__(self, message=None, detail=None, code=None):
+        self.message = message or self.default_detail
         self.detail = detail or {}
-        super().__init__(self.message)
-
-    def to_dict(self) -> dict[str, Any]:
-        return {
-            "message": self.message,
-            "code": self.code,
-            "detail": self.detail,
-        }
+        self.code = code or self.default_code
+        super().__init__(detail=self.message, code=self.code)
 
 
 class ValidationBusinessError(BusinessError):
-    default_message = "요청 값이 올바르지 않습니다."
-    default_code = "validation_business_error"
-    default_status_code = 400
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "요청 값이 올바르지 않습니다."
+    default_code = "VALIDATION_ERROR"
 
 
 class NotFoundBusinessError(BusinessError):
-    default_message = "대상을 찾을 수 없습니다."
-    default_code = "not_found_business_error"
-    default_status_code = 404
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = "요청한 리소스를 찾을 수 없습니다."
+    default_code = "RESOURCE_NOT_FOUND"
 
 
 class ConflictBusinessError(BusinessError):
-    default_message = "현재 상태에서는 처리할 수 없습니다."
-    default_code = "conflict_business_error"
-    default_status_code = 409
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "이미 존재하거나 충돌하는 데이터입니다."
+    default_code = "CONFLICT"
 
 
 class PermissionBusinessError(BusinessError):
-    default_message = "해당 작업을 수행할 권한이 없습니다."
-    default_code = "permission_business_error"
-    default_status_code = 403
+    status_code = status.HTTP_403_FORBIDDEN
+    default_detail = "접근 권한이 없습니다."
+    default_code = "FORBIDDEN"
 
 
 class OrderError(BusinessError):
