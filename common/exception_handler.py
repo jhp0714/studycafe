@@ -57,7 +57,7 @@ def custom_exception_handler(exc, context):
             status=exc.status_code,
         )
 
-    # 2. DB 제약조건 충돌
+    # DB 제약조건 충돌
     if isinstance(exc, IntegrityError):
         return Response(
             {
@@ -68,10 +68,10 @@ def custom_exception_handler(exc, context):
             status=status.HTTP_409_CONFLICT,
         )
 
-    # 3. DRF 기본 예외 처리
+    # DRF 기본 예외 처리
     response = drf_exception_handler(exc, context)
 
-    # 4. 처리되지 않은 예외 -> 500 통일
+    # 처리되지 않은 예외 -> 500 통일
     if response is None:
         return Response(
             {

@@ -41,54 +41,54 @@ class PermissionBusinessError(BusinessError):
 
 class OrderError(BusinessError):
     default_message = "주문 처리 중 오류가 발생했습니다."
-    default_code = "order_error"
+    default_code = "ORDER_ERROR"
 
 
 class PaymentError(BusinessError):
     default_message = "결제 처리 중 오류가 발생했습니다."
-    default_code = "payment_error"
+    default_code = "PAYMENT_ERROR"
 
 
 class PassError(BusinessError):
     default_message = "이용권 처리 중 오류가 발생했습니다."
-    default_code = "pass_error"
+    default_code = "PASS_ERROR"
 
 
 class UsageError(BusinessError):
     default_message = "이용 처리 중 오류가 발생했습니다."
-    default_code = "usage_error"
+    default_code = "USAGE_ERROR"
 
 
 class CheckinError(UsageError):
     default_message = "입실 처리 중 오류가 발생했습니다."
-    default_code = "checkin_error"
+    default_code = "CHECKIN_ERROR"
 
 
 class CheckoutError(UsageError):
     default_message = "퇴실 처리 중 오류가 발생했습니다."
-    default_code = "checkout_error"
+    default_code = "CHECKOUT_ERROR"
 
 
 class MoveError(UsageError):
     default_message = "이동 처리 중 오류가 발생했습니다."
-    default_code = "move_error"
+    default_code = "MOVE_ERROR"
 
 
 class LockerError(BusinessError):
     default_message = "사물함 처리 중 오류가 발생했습니다."
-    default_code = "locker_error"
+    default_code = "LOCKER_ERROR"
 
 
 class RefundError(BusinessError):
     default_message = "환불 처리 중 오류가 발생했습니다."
-    default_code = "refund_error"
+    default_code = "REFUND_ERROR"
 
 
 class ExpirationError(BusinessError):
     default_message = "만료 처리 중 오류가 발생했습니다."
-    default_code = "expiration_error"
+    default_code = "EXPIRATION_ERROR"
 
 
 class BatchProcessError(BusinessError):
     default_message = "배치 처리 중 오류가 발생했습니다."
-    default_code = "batch_process_error"
+    default_code = "BATCH_PROCESS_ERROR"

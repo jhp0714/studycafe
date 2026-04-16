@@ -116,7 +116,7 @@ def _validate_selection_for_product(*,user,product:Product, seat_id:int|None,loc
             return None, None
 
         if locker_id is None:
-            raise NotFoundBusinessError(
+            raise ValidationBusinessError(
                 message="사물함을 첫 구매 시 사물함 선택이 필요합니다.",
                 code="locker_required_for_locker_product",
                 detail={"locker_id":locker_id},
