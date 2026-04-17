@@ -65,6 +65,11 @@ class Order(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
+    class Meta :
+        indexes = [
+            models.Index(fields=["user", "status", "created_at"], name="idx_order_user_status_created"),
+        ]
+
     def clean(self) :
         super().clean()
 

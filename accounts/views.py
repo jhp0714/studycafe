@@ -193,7 +193,7 @@ class MyPassListAPIView(APIView):
             qs = qs.filter(status=status_param)
 
         data = PassReadSerializer(qs, many=True).data
-        return ok(data=data, meta={"count":qs.count()})
+        return ok(data=data, meta={"count":len(data)})
 
 
 class MyOrderListAPIView(APIView):
@@ -256,7 +256,7 @@ class MyOrderListAPIView(APIView):
             meta={
                 "page" : current_page,
                 "size" : size,
-                "total" : qs.count(),
+                "total" : paginator.count,
                 "total_pages" : paginator.num_pages,
             }
         )

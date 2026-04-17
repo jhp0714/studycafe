@@ -4,7 +4,11 @@
 
 from __future__ import annotations
 
-from cafe.models import Locker, Pass, Seat
+from collections.abc import Iterable
+
+from django.db.models import Exists, OuterRef
+
+from cafe.models import Locker, Pass, Seat, LockerUsage, SeatUsage
 from payments.models import Product
 
 
@@ -20,34 +24,57 @@ def _has_active_pass(*,user,pass_kind:str) -> bool:
 
 
 def _has_available_fixed_seat() -> bool:
-    occupied_fixed_seat_ids = (
+    occupied_fixed_seat_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"))
+    return (
         Seat.objects
-        .filter(
-            seat_usage__isnull=False,
-            seat_type=Seat.SeatType.FIXED,
-        )
-        .values_list("id",flat=True)
+        .filter(seat_type=Seat.SeatType.FIXED, available=True)
+        .annotate(_is_used=Exists(occupied_fixed_seat_exists))
+        .filter(_is_used=False)
+        .exists()
     )
-
-    return Seat.objects.filter(
-        seat_type=Seat.SeatType.FIXED,
-        available=True,
-    ).exclude(id__in=occupied_fixed_seat_ids).exists()
 
 
 def _has_available_locker() -> bool:
-    occupied_locker_ids = (
+    occupied_locker_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"))
+    return (
         Locker.objects
-        .filter(
-            locker_usage__isnull=False,
-        )
-        .values_list("id",flat=True)
+        .filter(available=True)
+        .annotate(_is_used=Exists(occupied_locker_exists))
+        .filter(_is_used=False)
+        .exists()
     )
 
-    return Locker.objects.filter(available=True).exclude(id__in=occupied_locker_ids).exists()
+
+def build_purchase_availability_context(*, user=None, needed_product_types=None) -> dict:
+    needed = set(needed_product_types or [])
+    needs_fixed = Product.ProductType.FIXED in needed
+    needs_locker = Product.ProductType.LOCKER in needed
+
+    active_pass_kinds = set()
+    if user is not None and (needs_fixed or needs_locker):
+        pass_kinds = []
+        if needs_fixed:
+            pass_kinds.append(Pass.PassKind.FIXED)
+        if needs_locker:
+            pass_kinds.append(Pass.PassKind.LOCKER)
+
+        active_pass_kinds = set(
+            Pass.objects.filter(
+                user=user,
+                status=Pass.Status.ACTIVE,
+                pass_kind__in=pass_kinds,
+            ).values_list("pass_kind", flat=True)
+        )
+
+    return {
+        "active_pass_kinds": active_pass_kinds,
+        "has_available_fixed_seat": _has_available_fixed_seat() if needs_fixed else False,
+        "has_available_locker": _has_available_locker() if needs_locker else False,
+    }
 
 
-def is_product_purchasable(*,product:Product,user=None) -> tuple[bool, str|None]:
+
+def is_product_purchasable(*,product:Product,user=None,purchase_context:dict|None=None) -> tuple[bool, str|None]:
     """
     반환
     - (True, None)
@@ -61,25 +88,38 @@ def is_product_purchasable(*,product:Product,user=None) -> tuple[bool, str|None]
     if product_type in (Product.ProductType.TIME, Product.ProductType.FLAT):
         return True, None
 
-    if product_type == Product.ProductType.FIXED:
-        if _has_active_pass(user=user, pass_kind=Pass.PassKind.FIXED):
-            return True, None
-        if _has_available_fixed_seat():
-            return True, None
+    active_pass_kinds = set((purchase_context or {}).get("active_pass_kinds",set()))
+    if product_type == Product.ProductType.FIXED :
+        if purchase_context is not None :
+            if Pass.PassKind.FIXED in active_pass_kinds :
+                return True, None
+            if purchase_context.get("has_available_fixed_seat", False) :
+                return True, None
+        else :
+            if _has_active_pass(user=user, pass_kind=Pass.PassKind.FIXED) :
+                return True, None
+            if _has_available_fixed_seat() :
+                return True, None
         return False, "fixed_seat_unavailable"
 
-    if product_type == Product.ProductType.LOCKER:
-        if _has_active_pass(user=user, pass_kind=Pass.PassKind.LOCKER):
-            return True, None
-        if _has_available_locker():
-            return True, None
+    if product_type == Product.ProductType.LOCKER :
+        if purchase_context is not None :
+            if Pass.PassKind.LOCKER in active_pass_kinds :
+                return True, None
+            if purchase_context.get("has_available_locker", False) :
+                return True, None
+        else :
+            if _has_active_pass(user=user, pass_kind=Pass.PassKind.LOCKER) :
+                return True, None
+            if _has_available_locker() :
+                return True, None
         return False, "locker_unavailable"
 
     return False, "unsupported_product_type"
 
 
-def get_product_purchase_status(*, product:Product, user=None) -> dict:
-    is_purchasable, reason_code = is_product_purchasable(product=product, user=user)
+def get_product_purchase_status(*, product:Product, user=None, purchase_context: dict | None = None) -> dict:
+    is_purchasable, reason_code = is_product_purchasable(product=product, user=user, purchase_context=purchase_context)
 
     reason_messages = {
         "product_inactive" : "비활성 상품입니다.",

@@ -22,7 +22,7 @@ from .serializers import (
 from .services.refunds import create_refund, RefundError
 from .services.payments import pay_order
 from .services.orders import create_order
-from .services.products import get_product_purchase_status
+from .services.products import get_product_purchase_status, build_purchase_availability_context
 
 
 def ok(data=None, meta=None, status_code=200):
@@ -58,13 +58,38 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
         return qs
 
-    def list(self, request, *args, **kwargs):
-        res = super().list(request, *args, **kwargs)
-        return ok(res.data)
+    def _build_purchase_context(self, *, product_types) :
+        request = self.request
+        user = request.user if request.user.is_authenticated else None
+        return build_purchase_availability_context(
+            user=user,
+            needed_product_types=product_types,
+        )
 
-    def retrieve(self, request, *args, **kwargs):
-        res = super().retrieve(request, *args, **kwargs)
-        return ok(res.data)
+    def list(self, request, *args, **kwargs) :
+        queryset = self.filter_queryset(self.get_queryset())
+        product_types = set(queryset.values_list("product_type", flat=True).distinct())
+
+        context = {
+            **self.get_serializer_context(),
+            "product_purchase_context" : self._build_purchase_context(product_types=product_types),
+        }
+
+        serializer = self.get_serializer(queryset, many=True, context=context)
+        return ok(serializer.data)
+
+    def retrieve(self, request, *args, **kwargs) :
+        instance = self.get_object()
+
+        context = {
+            **self.get_serializer_context(),
+            "product_purchase_context" : self._build_purchase_context(
+                product_types={instance.product_type}
+            ),
+        }
+
+        serializer = self.get_serializer(instance, context=context)
+        return ok(serializer.data)
 
 
 class AdminProductViewSet(AdminModelViewSet):
@@ -153,7 +178,7 @@ class PassAPIView(APIView):
             qs = qs.filter(pass_kind=pass_kind)
 
         data = PassReadSerializer(qs, many=True).data
-        return ok(data, meta={"count":qs.count()})
+        return ok(data, meta={"count":len(data)})
 
 
 class PassRetrieveAPIView(APIView):
@@ -185,7 +210,7 @@ class OrderAPIView(APIView):
         )
 
         data = OrderReadSerializer(qs, many=True).data
-        return ok(data, meta={"count" : qs.count()})
+        return ok(data, meta={"count" : len(data)})
 
     def post(self, request) :
         s = OrderCreateSerializer(data=request.data, context={"request" : request})
@@ -222,7 +247,7 @@ class PaymentAPIView(APIView):
         )
 
         data = PaymentReadSerializer(qs, many=True).data
-        return ok(data, meta={"count" : qs.count()})
+        return ok(data, meta={"count" : len(data)})
 
 
     def post(self, request) :

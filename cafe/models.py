@@ -62,6 +62,10 @@ class Pass(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
+        indexes = [
+            models.Index(fields=["user", "status", "created_at"], name="idx_pass_user_status_created"),
+            models.Index(fields=["user", "pass_kind", "status"], name="idx_pass_user_kind_status"),
+        ]
         constraints = [
             models.CheckConstraint(
                 name="chk_pass_resource_shape",

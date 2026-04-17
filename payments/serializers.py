@@ -25,10 +25,21 @@ class ProductReadSerializer(serializers.ModelSerializer):
             "purchase_block_reason",
         ]
 
-    def _get_status_info(self, obj):
+    def _get_status_info(self, obj) :
+        status_cache = self.context.setdefault("_product_status_cache", {})
+        if obj.id in status_cache :
+            return status_cache[obj.id]
+
         request = self.context.get("request")
         user = request.user if request and request.user.is_authenticated else None
-        return get_product_purchase_status(product=obj, user=user)
+        purchase_context = self.context.get("product_purchase_context")
+
+        status_cache[obj.id] = get_product_purchase_status(
+            product=obj,
+            user=user,
+            purchase_context=purchase_context,
+        )
+        return status_cache[obj.id]
 
     def get_is_purchasable(self, obj):
         return self._get_status_info(obj)["is_purchasable"]
