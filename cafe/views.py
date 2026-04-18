@@ -103,6 +103,7 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
     """
     serializer_class = SeatAdminWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminRole]
+    http_method_names = ["get","post","patch","head","options"]
 
     def get_queryset(self):
         return Seat.objects.all().order_by("id")
@@ -133,6 +134,8 @@ class AdminLockerViewSet(viewsets.ModelViewSet):
     """
     serializer_class = LockerAdminWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminRole]
+    http_method_names = ["get","post","patch","head","options"]
+
 
     def get_queryset(self) :
         return Locker.objects.all().order_by("id")
@@ -226,7 +229,7 @@ class SeatMoveAPIView(APIView):
 
         result = move_seat(
             user=request.user,
-            to_seat_id=s.validated_data["seat_id"],
+            to_seat_id=s.validated_data["to_seat_id"],
         )
 
         return ok(result)
@@ -241,7 +244,7 @@ class LockerMoveAPIView(APIView):
 
         locker_usage = move_locker(
             user=request.user,
-            to_locker_id=s.validated_data["locker_id"],
+            to_locker_id=s.validated_data["to_locker_id"],
         )
 
         return ok(

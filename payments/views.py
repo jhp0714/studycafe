@@ -100,6 +100,7 @@ class AdminProductViewSet(AdminModelViewSet):
     GET     /admin/products/{id}
     """
     serializer_class = AdminProductWriteSerializer
+    http_method_names = ["get","post","patch","head","options"]
 
     def get_queryset(self):
         return Product.objects.all().order_by("id")

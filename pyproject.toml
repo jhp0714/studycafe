@@ -11,9 +11,10 @@ dependencies = [
     "django (>=4.2,<5.0)",
     "djangorestframework (>=3.16.1,<4.0.0)",
     "psycopg[binary] (>=3.3.2,<4.0.0)",
-    "djangorestframework-simplejwt (>=5.5.1,<6.0.0)"
+    "djangorestframework-simplejwt (>=5.5.1,<6.0.0)",
+    "drf-spectacular (>=0.29.0,<0.30.0)"
 ]
-
+drf-spectacular="^0.27.2"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

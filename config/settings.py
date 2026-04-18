@@ -41,6 +41,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt.token_blacklist',
+    'drf_spectacular'
 
     'accounts',
     'payments',
@@ -147,6 +148,7 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.IsAuthenticated"
     ],
     "EXCEPTION_HANDLER": "common.exception_handler.custom_exception_handler",
+    "DEFAULT_SCHEMA_CLASS":"drf_spectacular.openapi.AutoSchema",
 }
 
 SIMPLE_JWT = {
@@ -155,4 +157,11 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE":"StudyCafe API",
+    "DESCRIPTION":"스터디카페 프로젝트 API 문서",
+    "VERSION":"1.5.0",
+    "SERVE_INCULDE_SCHEMA":False,
 }

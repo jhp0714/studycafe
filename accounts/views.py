@@ -7,6 +7,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 
+from drf_spectacular.utils import extend_schema, OpenApiExample, OpenApiParameter, OpenApiResponse
+
 from cafe.models import SeatUsage, LockerUsage, Pass
 from payments.models import Order
 from payments.serializers import PassReadSerializer, OrderReadSerializer
@@ -15,6 +17,7 @@ from .serializers import (
     SignUpSerializer, LoginSerializer,
     UserSerializer, MeSerializer
 )
+from common.swagger import UNAUTHORIZED_RESPONSE, VALIDATION_ERROR_RESPONSE
 
 def ok(data=None, meta=None, status_code=200):
     payload = {"data": data if data is not None else {}}
@@ -36,6 +39,32 @@ def error(code, message, details=None, status_code=400):
         status=status_code,
     )
 
+@extend_schema(
+    tags=["Auth"],
+    summary="회원가입",
+    request=SignUpSerializer,
+    responses={
+        201: OpenApiResponse(
+            description="회원가입 성공",
+            examples=[
+                OpenApiExample(
+                    "SignupSuccess",
+                    value={
+                        "data": {
+                            "id": 1,
+                            "phone": "01012345678",
+                            "name": "홍길동",
+                            "role": "USER",
+                        },
+                        "meta": {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        400: VALIDATION_ERROR_RESPONSE,
+    },
+)
 class SignUpAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -57,7 +86,36 @@ class SignUpAPIView(APIView):
             status=status.HTTP_201_CREATED,
         )
 
-
+@extend_schema(
+    tags=["Auth"],
+    summary="로그인",
+    request=LoginSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="로그인 성공",
+            examples=[
+                OpenApiExample(
+                    "LoginSuccess",
+                    value={
+                        "data": {
+                            "access_token": "jwt-access-token",
+                            "refresh_token": "jwt-refresh-token",
+                            "user": {
+                                "id": 1,
+                                "name": "홍길동",
+                                "role": "USER",
+                            },
+                        },
+                        "meta": {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401: UNAUTHORIZED_RESPONSE,
+        400: VALIDATION_ERROR_RESPONSE,
+    },
+)
 class LoginAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -81,6 +139,38 @@ class LoginAPIView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Auth"],
+    summary="토큰 재발급",
+    request={
+        "application/json": {
+            "type": "object",
+            "properties": {
+                "refresh_token": {"type": "string"},
+            },
+            "required": ["refresh_token"],
+        }
+    },
+    responses={
+        200: OpenApiResponse(
+            description="재발급 성공",
+            examples=[
+                OpenApiExample(
+                    "RefreshSuccess",
+                    value={
+                        "data": {
+                            "access_token": "new-access-token"
+                        },
+                        "meta": {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401: UNAUTHORIZED_RESPONSE,
+        400: VALIDATION_ERROR_RESPONSE,
+    },
+)
 class RefreshAPIView(APIView):
     permission_classes = [AllowAny]
 
@@ -109,6 +199,38 @@ class RefreshAPIView(APIView):
             )
 
 
+@extend_schema(
+    tags=["Auth"],
+    summary="로그아웃",
+    request={
+        "application/json": {
+            "type": "object",
+            "properties": {
+                "refresh_token": {"type": "string"},
+            },
+            "required": ["refresh_token"],
+        }
+    },
+    responses={
+        200: OpenApiResponse(
+            description="로그아웃 성공",
+            examples=[
+                OpenApiExample(
+                    "LogoutSuccess",
+                    value={
+                        "data": {
+                            "message": "로그아웃 되었습니다."
+                        },
+                        "meta": {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401: UNAUTHORIZED_RESPONSE,
+        400: VALIDATION_ERROR_RESPONSE,
+    },
+)
 class LogoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -143,6 +265,35 @@ class LogoutAPIView(APIView):
             )
 
 
+@extend_schema(
+    tags=["Users"],
+    summary="내 정보 조회",
+    responses={
+        200: OpenApiResponse(
+            description="내 정보 조회 성공",
+            examples=[
+                OpenApiExample(
+                    "MeSuccess",
+                    value={
+                        "data": {
+                            "id": 1,
+                            "name": "홍길동",
+                            "phone": "01012345678",
+                            "current_seat": {
+                                "id": 10,
+                                "seat_type": "normal",
+                            },
+                            "current_locker": None,
+                        },
+                        "meta": {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401: UNAUTHORIZED_RESPONSE,
+    },
+)
 class MeAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -169,6 +320,20 @@ class MeAPIView(APIView):
         return ok(data=MeSerializer(user).data)
 
 
+@extend_schema(
+    tags=["Users"],
+    summary="내 패스 목록 조회",
+    parameters=[
+        OpenApiParameter(
+            name="status",
+            location=OpenApiParameter.QUERY,
+            required=False,
+            enum=["active", "expired", "canceled"],
+            description="패스 상태 필터",
+        ),
+    ],
+    responses={200: PassReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE, 400: VALIDATION_ERROR_RESPONSE},
+)
 class MyPassListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -196,6 +361,34 @@ class MyPassListAPIView(APIView):
         return ok(data=data, meta={"count":len(data)})
 
 
+@extend_schema(
+    tags=["Users"],
+    summary="내 주문 목록 조회",
+    parameters=[
+        OpenApiParameter(
+            name="status",
+            location=OpenApiParameter.QUERY,
+            required=False,
+            enum=["created", "paid", "canceled", "expired"],
+            description="주문 상태 필터",
+        ),
+        OpenApiParameter(
+            name="page",
+            location=OpenApiParameter.QUERY,
+            required=False,
+            type=int,
+            description="페이지 번호",
+        ),
+        OpenApiParameter(
+            name="size",
+            location=OpenApiParameter.QUERY,
+            required=False,
+            type=int,
+            description="페이지 크기",
+        ),
+    ],
+    responses={200: OrderReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE, 400: VALIDATION_ERROR_RESPONSE},
+)
 class MyOrderListAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

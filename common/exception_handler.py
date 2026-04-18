@@ -77,7 +77,7 @@ def custom_exception_handler(exc, context):
             {
                 "message": "서버 내부 오류가 발생했습니다.",
                 "code": "INTERNAL_SERVER_ERROR",
-                "detail": {},
+                "details": {},
             },
             status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
@@ -106,6 +106,6 @@ def custom_exception_handler(exc, context):
     response.data = {
         "message": message,
         "code": code,
-        "detail": detail,
+        "details": detail,
     }
     return response
