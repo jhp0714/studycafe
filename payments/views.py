@@ -10,6 +10,10 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiParameter, OpenApiResponse
+
+from common.swagger import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, VALIDATION_ERROR_RESPONSE, NOT_FOUND_RESPONSE
+
 from accounts.permissions import IsAdminRole, AdminModelViewSet, AdminAPIView
 from .models import Product, Order, Payment, Refund
 from cafe.models import Pass, SeatUsage, LockerUsage
@@ -34,6 +38,22 @@ def ok(data=None, meta=None, status_code=200):
 def gen_order_no() -> str:
     return f"ORD-{uuid.uuid4().hex[:20]}"
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Products"],
+        summary="상품 목록 조회",
+        parameters=[
+            OpenApiParameter("product_type", str, OpenApiParameter.QUERY, enum=["time", "flat", "fixed", "locker"], required=False),
+            OpenApiParameter("is_active", bool, OpenApiParameter.QUERY, required=False),
+        ],
+        responses={200: ProductReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE},
+    ),
+    retrieve=extend_schema(
+        tags=["Products"],
+        summary="상품 상세 조회",
+        responses={200: ProductReadSerializer, 401: UNAUTHORIZED_RESPONSE, 404: NOT_FOUND_RESPONSE},
+    ),
+)
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     """
     GET /products?available=true&product_type=time|flat|fixed|locker
@@ -92,6 +112,12 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         return ok(serializer.data)
 
 
+@extend_schema_view(
+    list=extend_schema(tags=["Admin"], summary="관리자 상품 목록 조회"),
+    retrieve=extend_schema(tags=["Admin"], summary="관리자 상품 상세 조회"),
+    create=extend_schema(tags=["Admin"], summary="관리자 상품 생성", request=AdminProductWriteSerializer),
+    partial_update=extend_schema(tags=["Admin"], summary="관리자 상품 수정", request=AdminProductWriteSerializer),
+)
 class AdminProductViewSet(AdminModelViewSet):
     """
     POST    /admin/products
@@ -119,6 +145,15 @@ class AdminProductViewSet(AdminModelViewSet):
 
 
 
+@extend_schema(
+    tags=["Orders/Payments/Passes"],
+    summary="주문 상세 조회",
+    responses={
+        200: OrderReadSerializer,
+        401: UNAUTHORIZED_RESPONSE,
+        404: NOT_FOUND_RESPONSE,
+    },
+)
 class OrderRetrieveAPIView(APIView):
     """
     GET /orders/{id}
@@ -137,6 +172,15 @@ class OrderRetrieveAPIView(APIView):
         return ok(data)
 
 
+@extend_schema(
+    tags=["Orders/Payments/Passes"],
+    summary="결제 상세 조회",
+    responses={
+        200: PaymentReadSerializer,
+        401: UNAUTHORIZED_RESPONSE,
+        404: NOT_FOUND_RESPONSE,
+    },
+)
 class PaymentRetrieveAPIView(APIView):
     """
     GET /payments/{id}
@@ -154,6 +198,15 @@ class PaymentRetrieveAPIView(APIView):
         return ok(data)
 
 
+@extend_schema(
+    tags=["Orders/Payments/Passes"],
+    summary="패스 목록 조회",
+    parameters=[
+        OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["active", "expired", "canceled"], required=False),
+        OpenApiParameter("pass_kind", str, OpenApiParameter.QUERY, enum=["time", "flat", "fixed", "locker"], required=False),
+    ],
+    responses={200: PassReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE},
+)
 class PassAPIView(APIView):
     """
     get /passes
@@ -182,6 +235,15 @@ class PassAPIView(APIView):
         return ok(data, meta={"count":len(data)})
 
 
+@extend_schema(
+    tags=["Orders/Payments/Passes"],
+    summary="패스 상세 조회",
+    responses={
+        200: PassReadSerializer,
+        401: UNAUTHORIZED_RESPONSE,
+        404: NOT_FOUND_RESPONSE,
+    },
+)
 class PassRetrieveAPIView(APIView):
     """
     GET /passes/{id}
@@ -202,6 +264,11 @@ class PassRetrieveAPIView(APIView):
 class OrderAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        tags=["Orders/Payments/Passes"],
+        summary="주문 목록 조회",
+        responses={200 : OrderReadSerializer(many=True), 401 : UNAUTHORIZED_RESPONSE},
+    )
     def get(self, request):
         qs = (
             Order.objects
@@ -213,6 +280,16 @@ class OrderAPIView(APIView):
         data = OrderReadSerializer(qs, many=True).data
         return ok(data, meta={"count" : len(data)})
 
+    @extend_schema(
+        tags=["Orders/Payments/Passes"],
+        summary="주문 생성",
+        request=OrderCreateSerializer,
+        responses={
+            201 : OpenApiResponse(description="주문 생성 성공"),
+            400 : VALIDATION_ERROR_RESPONSE,
+            401 : UNAUTHORIZED_RESPONSE,
+        },
+    )
     def post(self, request) :
         s = OrderCreateSerializer(data=request.data, context={"request" : request})
         s.is_valid(raise_exception=True)
@@ -234,6 +311,11 @@ class PaymentAPIView(APIView):
 
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        tags=["Orders/Payments/Passes"],
+        summary="결제 목록 조회",
+        responses={200 : PaymentReadSerializer(many=True), 401 : UNAUTHORIZED_RESPONSE},
+    )
     def get(self, request) :
         """
         GET /payments
@@ -250,7 +332,16 @@ class PaymentAPIView(APIView):
         data = PaymentReadSerializer(qs, many=True).data
         return ok(data, meta={"count" : len(data)})
 
-
+    @extend_schema(
+        tags=["Orders/Payments/Passes"],
+        summary="결제 생성",
+        request=PaymentCreateSerailizer,
+        responses={
+            201 : OpenApiResponse(description="결제 성공"),
+            400 : VALIDATION_ERROR_RESPONSE,
+            401 : UNAUTHORIZED_RESPONSE,
+        },
+    )
     def post(self, request) :
         """
         결제 확정

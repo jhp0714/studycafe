@@ -4,6 +4,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiParameter, OpenApiResponse
+
+from common.swagger import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, VALIDATION_ERROR_RESPONSE
+
 from accounts.permissions import IsAdminRole
 from .models import Seat, Locker, SeatUsage, LockerUsage
 from .serializers import (
@@ -24,6 +28,23 @@ def ok(data=None, meta=None, status_code=200):
         payload["meta"] = meta
     return Response(payload, status=status_code)
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Seats/Lockers"],
+        summary="좌석 목록 조회",
+        parameters=[
+            OpenApiParameter("seat_type", str, OpenApiParameter.QUERY, enum=["normal", "fixed"], required=False),
+            OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["used", "unused"], required=False),
+            OpenApiParameter("available", bool, OpenApiParameter.QUERY, required=False),
+        ],
+        responses={200: SeatReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE},
+    ),
+    retrieve=extend_schema(
+        tags=["Seats/Lockers"],
+        summary="좌석 상세 조회",
+        responses={200: SeatReadSerializer, 401: UNAUTHORIZED_RESPONSE},
+    ),
+)
 class SeatViewSet(viewsets.ReadOnlyModelViewSet):
     """
     GET /seats?seat_type=noraml|fixed&status=used|unused&available=true|false
@@ -190,6 +211,31 @@ class AdminForceCheckoutAPIView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Usage"],
+    summary="일반석 입실",
+    request=NormalSeatCheckinSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="입실 성공",
+            examples=[
+                OpenApiExample(
+                    "CheckinSuccess",
+                    value={
+                        "data": {
+                            "seat": {"id": 3},
+                            "expected_end_at": "2026-01-20T21:00:00+09:00",
+                        }
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        400: VALIDATION_ERROR_RESPONSE,
+        401: UNAUTHORIZED_RESPONSE,
+        403: FORBIDDEN_RESPONSE,
+    },
+)
 class NormalSeatCheckinAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -212,6 +258,21 @@ class NormalSeatCheckinAPIView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Usage"],
+    summary="일반석 퇴실",
+    request={
+        "application/json": {
+            "type": "object",
+            "properties": {},
+        }
+    },
+    responses={
+        200: OpenApiResponse(description="퇴실 성공"),
+        401: UNAUTHORIZED_RESPONSE,
+        403: FORBIDDEN_RESPONSE,
+    },
+)
 class NormalSeatCheckoutAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -220,6 +281,17 @@ class NormalSeatCheckoutAPIView(APIView):
         return ok(result)
 
 
+@extend_schema(
+    tags=["Usage"],
+    summary="좌석 이동",
+    request=SeatMoveSerializer,
+    responses={
+        200: OpenApiResponse(description="좌석 이동 성공"),
+        400: VALIDATION_ERROR_RESPONSE,
+        401: UNAUTHORIZED_RESPONSE,
+        403: FORBIDDEN_RESPONSE,
+    },
+)
 class SeatMoveAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -235,6 +307,17 @@ class SeatMoveAPIView(APIView):
         return ok(result)
 
 
+@extend_schema(
+    tags=["Usage"],
+    summary="사물함 이동",
+    request=LockerMoveSerializer,
+    responses={
+        200: OpenApiResponse(description="사물함 이동 성공"),
+        400: VALIDATION_ERROR_RESPONSE,
+        401: UNAUTHORIZED_RESPONSE,
+        403: FORBIDDEN_RESPONSE,
+    },
+)
 class LockerMoveAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -257,6 +340,17 @@ class LockerMoveAPIView(APIView):
         )
 
 
+@extend_schema(
+    tags=["Usage"],
+    summary="일반석 이용 시간 연장",
+    request=NormalSeatExtendSerializer,
+    responses={
+        200: OpenApiResponse(description="연장 성공"),
+        400: VALIDATION_ERROR_RESPONSE,
+        401: UNAUTHORIZED_RESPONSE,
+        403: FORBIDDEN_RESPONSE,
+    },
+)
 class NormalSeatExtendAPIView(APIView):
     permission_classes = [IsAuthenticated]
 

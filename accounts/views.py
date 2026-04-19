@@ -17,7 +17,7 @@ from .serializers import (
     SignUpSerializer, LoginSerializer,
     UserSerializer, MeSerializer
 )
-from common.swagger import UNAUTHORIZED_RESPONSE, VALIDATION_ERROR_RESPONSE
+from common.swagger import UNAUTHORIZED_RESPONSE, VALIDATION_ERROR_RESPONSE, FORBIDDEN_RESPONSE
 
 def ok(data=None, meta=None, status_code=200):
     payload = {"data": data if data is not None else {}}
@@ -30,11 +30,9 @@ def ok(data=None, meta=None, status_code=200):
 def error(code, message, details=None, status_code=400):
     return Response(
         {
-            "error": {
-                "code": code,
-                "message": message,
-                "details": details or {},
-            }
+            "message": message,
+            "code": code,
+            "details": details or {},
         },
         status=status_code,
     )
@@ -229,6 +227,7 @@ class RefreshAPIView(APIView):
         ),
         401: UNAUTHORIZED_RESPONSE,
         400: VALIDATION_ERROR_RESPONSE,
+        405: FORBIDDEN_RESPONSE,
     },
 )
 class LogoutAPIView(APIView):
