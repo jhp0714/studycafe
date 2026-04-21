@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiParameter, OpenApiResponse
 
-from common.swagger import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, VALIDATION_ERROR_RESPONSE
+from common.swagger import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, VALIDATION_ERROR_RESPONSE, NOT_FOUND_RESPONSE
 
 from accounts.permissions import IsAdminRole
 from .models import Seat, Locker, SeatUsage, LockerUsage
@@ -37,17 +37,62 @@ def ok(data=None, meta=None, status_code=200):
             OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["used", "unused"], required=False),
             OpenApiParameter("available", bool, OpenApiParameter.QUERY, required=False),
         ],
-        responses={200: SeatReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE},
+        responses={
+            200 : OpenApiResponse(
+                description="좌석 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "SeatListSuccess",
+                        value={
+                            "data" : [
+                                {
+                                    "id" : 1,
+                                    "seat_no" : "N1",
+                                    "seat_type" : "normal",
+                                    "status" : "unused",
+                                    "available" : True,
+                                }
+                            ],
+                            "meta" : {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401 : UNAUTHORIZED_RESPONSE,
+        },
     ),
     retrieve=extend_schema(
         tags=["Seats/Lockers"],
         summary="좌석 상세 조회",
-        responses={200: SeatReadSerializer, 401: UNAUTHORIZED_RESPONSE},
+        responses={
+            200 : OpenApiResponse(
+                description="좌석 상세 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "SeatDetailSuccess",
+                        value={
+                            "data" : {
+                                "id" : 1,
+                                "seat_no" : "N1",
+                                "seat_type" : "normal",
+                                "status" : "unused",
+                                "available" : True,
+                            },
+                            "meta" : {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401 : UNAUTHORIZED_RESPONSE,
+            404 : NOT_FOUND_RESPONSE,
+        },
     ),
 )
 class SeatViewSet(viewsets.ReadOnlyModelViewSet):
     """
-    GET /seats?seat_type=noraml|fixed&status=used|unused&available=true|false
+    GET /seats?seat_type=normal|fixed&status=used|unused&available=true|false
     """
     serializer_class = SeatReadSerializer
     permission_classes = [IsAuthenticated]
@@ -82,6 +127,65 @@ class SeatViewSet(viewsets.ReadOnlyModelViewSet):
         return ok(res.data)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Seats/Lockers"],
+        summary="사물함 목록 조회",
+        parameters=[
+            OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["used", "unused"], required=False),
+            OpenApiParameter("available", bool, OpenApiParameter.QUERY, required=False),
+        ],
+        responses={
+            200: OpenApiResponse(
+                description="사물함 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "LockerListSuccess",
+                        value={
+                            "data": [
+                                {
+                                    "id": 1,
+                                    "locker_no": "L1",
+                                    "status": "unused",
+                                    "available": True,
+                                }
+                            ],
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401: UNAUTHORIZED_RESPONSE,
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Seats/Lockers"],
+        summary="사물함 상세 조회",
+        responses={
+            200: OpenApiResponse(
+                description="사물함 상세 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "LockerDetailSuccess",
+                        value={
+                            "data": {
+                                "id": 1,
+                                "locker_no": "L1",
+                                "status": "unused",
+                                "available": True,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401: UNAUTHORIZED_RESPONSE,
+            404: NOT_FOUND_RESPONSE,
+        },
+    ),
+)
 class LockerViewSet(viewsets.ReadOnlyModelViewSet):
     """
     GET /lockers?status=used|unused&available=true|false
@@ -115,6 +219,120 @@ class LockerViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Admin"],
+        summary="관리자 좌석 목록 조회",
+        responses={
+            200: OpenApiResponse(
+                description="관리자 좌석 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminSeatListSuccess",
+                        value={
+                            "data": [
+                                {
+                                    "id": 1,
+                                    "seat_no": "N1",
+                                    "seat_type": "normal",
+                                    "available": True,
+                                }
+                            ],
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Admin"],
+        summary="관리자 좌석 상세 조회",
+        responses={
+            200: OpenApiResponse(
+                description="관리자 좌석 상세 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminSeatDetailSuccess",
+                        value={
+                            "data": {
+                                "id": 1,
+                                "seat_no": "N1",
+                                "seat_type": "normal",
+                                "available": True,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+            404: NOT_FOUND_RESPONSE,
+        },
+    ),
+    create=extend_schema(
+        tags=["Admin"],
+        summary="관리자 좌석 생성",
+        request=SeatAdminWriteSerializer,
+        responses={
+            201: OpenApiResponse(
+                description="관리자 좌석 생성 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminSeatCreateSuccess",
+                        value={
+                            "data": {
+                                "id": 11,
+                                "seat_no": "F1",
+                                "seat_type": "fixed",
+                                "available": True,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: VALIDATION_ERROR_RESPONSE,
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Admin"],
+        summary="관리자 좌석 수정",
+        request=SeatAdminWriteSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="관리자 좌석 수정 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminSeatUpdateSuccess",
+                        value={
+                            "data": {
+                                "id": 11,
+                                "seat_no": "F1",
+                                "seat_type": "fixed",
+                                "available": False,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: VALIDATION_ERROR_RESPONSE,
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+            404: NOT_FOUND_RESPONSE,
+        },
+    ),
+)
 class AdminSeatViewSet(viewsets.ModelViewSet):
     """
     POST    /admin/seats
@@ -146,6 +364,116 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
         return ok(res.data)
 
 
+@extend_schema_view(
+    list=extend_schema(
+        tags=["Admin"],
+        summary="관리자 사물함 목록 조회",
+        responses={
+            200: OpenApiResponse(
+                description="관리자 사물함 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminLockerListSuccess",
+                        value={
+                            "data": [
+                                {
+                                    "id": 1,
+                                    "locker_no": "L1",
+                                    "available": True,
+                                }
+                            ],
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Admin"],
+        summary="관리자 사물함 상세 조회",
+        responses={
+            200: OpenApiResponse(
+                description="관리자 사물함 상세 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminLockerDetailSuccess",
+                        value={
+                            "data": {
+                                "id": 1,
+                                "locker_no": "L1",
+                                "available": True,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+            404: NOT_FOUND_RESPONSE,
+        },
+    ),
+    create=extend_schema(
+        tags=["Admin"],
+        summary="관리자 사물함 생성",
+        request=LockerAdminWriteSerializer,
+        responses={
+            201: OpenApiResponse(
+                description="관리자 사물함 생성 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminLockerCreateSuccess",
+                        value={
+                            "data": {
+                                "id": 11,
+                                "locker_no": "L11",
+                                "available": True,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: VALIDATION_ERROR_RESPONSE,
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Admin"],
+        summary="관리자 사물함 수정",
+        request=LockerAdminWriteSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="관리자 사물함 수정 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminLockerUpdateSuccess",
+                        value={
+                            "data": {
+                                "id": 11,
+                                "locker_no": "L11",
+                                "available": False,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: VALIDATION_ERROR_RESPONSE,
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+            404: NOT_FOUND_RESPONSE,
+        },
+    ),
+)
 class AdminLockerViewSet(viewsets.ModelViewSet):
     """
     POST    /admin/lockers
@@ -178,6 +506,42 @@ class AdminLockerViewSet(viewsets.ModelViewSet):
         return ok(res.data)
 
 
+@extend_schema(
+    tags=["Admin"],
+    summary="관리자 강제 퇴실",
+    request=AdminForceCheckoutSerializer,
+    responses={
+        200: OpenApiResponse(
+            description="강제 퇴실 성공",
+            examples=[
+                OpenApiExample(
+                    "AdminForceCheckoutSuccess",
+                    value={
+                        "data": {
+                            "seat_usage_id": 1,
+                            "seat_id": 3,
+                            "seat_no": "N3",
+                            "user_id": 7,
+                            "pass_id": 12,
+                            "pass_kind": "time",
+                            "checked_out_at": "2026-04-21T18:00:00+09:00",
+                            "used_minutes": 60,
+                            "remaining_minutes_before": 180,
+                            "remaining_minutes_after": 120,
+                            "reason": "운영자 강제 퇴실",
+                        },
+                        "meta": {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        400: VALIDATION_ERROR_RESPONSE,
+        401: UNAUTHORIZED_RESPONSE,
+        403: FORBIDDEN_RESPONSE,
+        404: NOT_FOUND_RESPONSE,
+    },
+)
 class AdminForceCheckoutAPIView(APIView):
     """
     POST /admin/usage/force-checkout
@@ -216,7 +580,7 @@ class AdminForceCheckoutAPIView(APIView):
     summary="일반석 입실",
     request=NormalSeatCheckinSerializer,
     responses={
-        200: OpenApiResponse(
+        201: OpenApiResponse(
             description="입실 성공",
             examples=[
                 OpenApiExample(
@@ -268,9 +632,30 @@ class NormalSeatCheckinAPIView(APIView):
         }
     },
     responses={
-        200: OpenApiResponse(description="퇴실 성공"),
-        401: UNAUTHORIZED_RESPONSE,
-        403: FORBIDDEN_RESPONSE,
+        200 : OpenApiResponse(
+            description="퇴실 성공",
+            examples=[
+                OpenApiExample(
+                    "CheckoutSuccess",
+                    value={
+                        "data" : {
+                            "seat_usage_id" : 1,
+                            "seat_id" : 3,
+                            "pass_id" : 12,
+                            "pass_kind" : "time",
+                            "checked_out_at" : "2026-04-21T19:00:00+09:00",
+                            "used_minutes" : 60,
+                            "remaining_minutes_before" : 180,
+                            "remaining_minutes_after" : 120,
+                        },
+                        "meta" : {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401 : UNAUTHORIZED_RESPONSE,
+        403 : FORBIDDEN_RESPONSE,
     },
 )
 class NormalSeatCheckoutAPIView(APIView):
@@ -286,10 +671,29 @@ class NormalSeatCheckoutAPIView(APIView):
     summary="좌석 이동",
     request=SeatMoveSerializer,
     responses={
-        200: OpenApiResponse(description="좌석 이동 성공"),
-        400: VALIDATION_ERROR_RESPONSE,
-        401: UNAUTHORIZED_RESPONSE,
-        403: FORBIDDEN_RESPONSE,
+        200 : OpenApiResponse(
+            description="좌석 이동 성공",
+            examples=[
+                OpenApiExample(
+                    "SeatMoveSuccess",
+                    value={
+                        "data" : {
+                            "seat_usage_id" : 1,
+                            "seat_id" : 5,
+                            "pass_id" : 12,
+                            "pass_kind" : "time",
+                            "check_in_at" : "2026-04-21T18:00:00+09:00",
+                            "expected_end_at" : "2026-04-21T21:00:00+09:00",
+                        },
+                        "meta" : {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        400 : VALIDATION_ERROR_RESPONSE,
+        401 : UNAUTHORIZED_RESPONSE,
+        403 : FORBIDDEN_RESPONSE,
     },
 )
 class SeatMoveAPIView(APIView):
@@ -312,10 +716,27 @@ class SeatMoveAPIView(APIView):
     summary="사물함 이동",
     request=LockerMoveSerializer,
     responses={
-        200: OpenApiResponse(description="사물함 이동 성공"),
-        400: VALIDATION_ERROR_RESPONSE,
-        401: UNAUTHORIZED_RESPONSE,
-        403: FORBIDDEN_RESPONSE,
+        200 : OpenApiResponse(
+            description="사물함 이동 성공",
+            examples=[
+                OpenApiExample(
+                    "LockerMoveSuccess",
+                    value={
+                        "data" : {
+                            "locker_usage_id" : 1,
+                            "locker_id" : 3,
+                            "pass_id" : 12,
+                            "unassign_at" : "2026-05-01T00:00:00+09:00",
+                        },
+                        "meta" : {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        400 : VALIDATION_ERROR_RESPONSE,
+        401 : UNAUTHORIZED_RESPONSE,
+        403 : FORBIDDEN_RESPONSE,
     },
 )
 class LockerMoveAPIView(APIView):
@@ -345,10 +766,28 @@ class LockerMoveAPIView(APIView):
     summary="일반석 이용 시간 연장",
     request=NormalSeatExtendSerializer,
     responses={
-        200: OpenApiResponse(description="연장 성공"),
-        400: VALIDATION_ERROR_RESPONSE,
-        401: UNAUTHORIZED_RESPONSE,
-        403: FORBIDDEN_RESPONSE,
+        200 : OpenApiResponse(
+            description="연장 성공",
+            examples=[
+                OpenApiExample(
+                    "ExtendSuccess",
+                    value={
+                        "data" : {
+                            "seat_usage_id" : 1,
+                            "seat_id" : 3,
+                            "pass_id" : 12,
+                            "pass_kind" : "time",
+                            "expected_end_at" : "2026-04-21T23:00:00+09:00",
+                        },
+                        "meta" : {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        400 : VALIDATION_ERROR_RESPONSE,
+        401 : UNAUTHORIZED_RESPONSE,
+        403 : FORBIDDEN_RESPONSE,
     },
 )
 class NormalSeatExtendAPIView(APIView):

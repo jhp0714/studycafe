@@ -19,7 +19,7 @@ from .models import Product, Order, Payment, Refund
 from cafe.models import Pass, SeatUsage, LockerUsage
 from .serializers import (
     ProductReadSerializer, AdminProductWriteSerializer,
-    OrderCreateSerializer, PaymentCreateSerailizer,
+    OrderCreateSerializer, PaymentCreateSerializer,
     OrderReadSerializer, PaymentReadSerializer, PassReadSerializer,
     AdminRefundReadSerializer, AdminRefundCreateSerializer
 )
@@ -30,7 +30,7 @@ from .services.products import get_product_purchase_status, build_purchase_avail
 
 
 def ok(data=None, meta=None, status_code=200):
-    payload = {"data":data if data is not None else {}}
+    payload = {"data": data if data is not None else {}}
     if meta is not None:
         payload["meta"] = meta
     return Response(payload, status=status_code)
@@ -46,12 +46,65 @@ def gen_order_no() -> str:
             OpenApiParameter("product_type", str, OpenApiParameter.QUERY, enum=["time", "flat", "fixed", "locker"], required=False),
             OpenApiParameter("is_active", bool, OpenApiParameter.QUERY, required=False),
         ],
-        responses={200: ProductReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE},
+        responses={
+            200 : OpenApiResponse(
+                description="상품 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "ProductListSuccess",
+                        value={
+                            "data" : [
+                                {
+                                    "id" : 1,
+                                    "name" : "3시간권",
+                                    "product_type" : "time",
+                                    "price" : 6000,
+                                    "duration_hours" : 3,
+                                    "duration_days" : None,
+                                    "is_active" : True,
+                                    "can_purchase" : True,
+                                    "purchase_block_reason" : None,
+                                }
+                            ],
+                            "meta" : {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401 : UNAUTHORIZED_RESPONSE,
+        },
     ),
     retrieve=extend_schema(
         tags=["Products"],
         summary="상품 상세 조회",
-        responses={200: ProductReadSerializer, 401: UNAUTHORIZED_RESPONSE, 404: NOT_FOUND_RESPONSE},
+        responses={
+            200 : OpenApiResponse(
+                description="상품 상세 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "ProductDetailSuccess",
+                        value={
+                            "data" : {
+                                "id" : 1,
+                                "name" : "3시간권",
+                                "product_type" : "time",
+                                "price" : 6000,
+                                "duration_hours" : 3,
+                                "duration_days" : None,
+                                "is_active" : True,
+                                "can_purchase" : True,
+                                "purchase_block_reason" : None,
+                            },
+                            "meta" : {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401 : UNAUTHORIZED_RESPONSE,
+            404 : NOT_FOUND_RESPONSE,
+        },
     ),
 )
 class ProductViewSet(viewsets.ReadOnlyModelViewSet):
@@ -113,10 +166,130 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 @extend_schema_view(
-    list=extend_schema(tags=["Admin"], summary="관리자 상품 목록 조회"),
-    retrieve=extend_schema(tags=["Admin"], summary="관리자 상품 상세 조회"),
-    create=extend_schema(tags=["Admin"], summary="관리자 상품 생성", request=AdminProductWriteSerializer),
-    partial_update=extend_schema(tags=["Admin"], summary="관리자 상품 수정", request=AdminProductWriteSerializer),
+    list=extend_schema(
+        tags=["Admin"],
+        summary="관리자 상품 목록 조회",
+        responses={
+            200: OpenApiResponse(
+                description="관리자 상품 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminProductListSuccess",
+                        value={
+                            "data": [
+                                {
+                                    "id": 1,
+                                    "name": "3시간권",
+                                    "product_type": "time",
+                                    "price": 6000,
+                                    "duration_hours": 3,
+                                    "duration_days": None,
+                                    "is_active": True,
+                                }
+                            ],
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+        },
+    ),
+    retrieve=extend_schema(
+        tags=["Admin"],
+        summary="관리자 상품 상세 조회",
+        responses={
+            200: OpenApiResponse(
+                description="관리자 상품 상세 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminProductDetailSuccess",
+                        value={
+                            "data": {
+                                "id": 1,
+                                "name": "3시간권",
+                                "product_type": "time",
+                                "price": 6000,
+                                "duration_hours": 3,
+                                "duration_days": None,
+                                "is_active": True,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+            404: NOT_FOUND_RESPONSE,
+        },
+    ),
+    create=extend_schema(
+        tags=["Admin"],
+        summary="관리자 상품 생성",
+        request=AdminProductWriteSerializer,
+        responses={
+            201: OpenApiResponse(
+                description="관리자 상품 생성 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminProductCreateSuccess",
+                        value={
+                            "data": {
+                                "id": 11,
+                                "name": "1일권",
+                                "product_type": "flat",
+                                "price": 15000,
+                                "duration_hours": None,
+                                "duration_days": 1,
+                                "is_active": True,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: VALIDATION_ERROR_RESPONSE,
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+        },
+    ),
+    partial_update=extend_schema(
+        tags=["Admin"],
+        summary="관리자 상품 수정",
+        request=AdminProductWriteSerializer,
+        responses={
+            200: OpenApiResponse(
+                description="관리자 상품 수정 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminProductUpdateSuccess",
+                        value={
+                            "data": {
+                                "id": 11,
+                                "name": "1일권",
+                                "product_type": "flat",
+                                "price": 17000,
+                                "duration_hours": None,
+                                "duration_days": 1,
+                                "is_active": True,
+                            },
+                            "meta": {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400: VALIDATION_ERROR_RESPONSE,
+            401: UNAUTHORIZED_RESPONSE,
+            403: FORBIDDEN_RESPONSE,
+            404: NOT_FOUND_RESPONSE,
+        },
+    ),
 )
 class AdminProductViewSet(AdminModelViewSet):
     """
@@ -149,9 +322,34 @@ class AdminProductViewSet(AdminModelViewSet):
     tags=["Orders/Payments/Passes"],
     summary="주문 상세 조회",
     responses={
-        200: OrderReadSerializer,
-        401: UNAUTHORIZED_RESPONSE,
-        404: NOT_FOUND_RESPONSE,
+        200 : OpenApiResponse(
+            description="주문 상세 조회 성공",
+            examples=[
+                OpenApiExample(
+                    "OrderDetailSuccess",
+                    value={
+                        "data" : {
+                            "id" : 10,
+                            "order_no" : "ORD-1234567890ABCDEFGH",
+                            "status" : "created",
+                            "product" : {
+                                "id" : 1,
+                                "name" : "3시간권",
+                                "product_type" : "time",
+                                "price" : 6000,
+                            },
+                            "selected_seat_id" : None,
+                            "selected_locker_id" : None,
+                            "created_at" : "2026-04-20T10:00:00+09:00",
+                        },
+                        "meta" : {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401 : UNAUTHORIZED_RESPONSE,
+        404 : NOT_FOUND_RESPONSE,
     },
 )
 class OrderRetrieveAPIView(APIView):
@@ -176,9 +374,38 @@ class OrderRetrieveAPIView(APIView):
     tags=["Orders/Payments/Passes"],
     summary="결제 상세 조회",
     responses={
-        200: PaymentReadSerializer,
-        401: UNAUTHORIZED_RESPONSE,
-        404: NOT_FOUND_RESPONSE,
+        200 : OpenApiResponse(
+            description="결제 상세 조회 성공",
+            examples=[
+                OpenApiExample(
+                    "PaymentDetailSuccess",
+                    value={
+                        "data" : {
+                            "id" : 3,
+                            "status" : "paid",
+                            "amount" : 6000,
+                            "method" : "mock",
+                            "paid_at" : "2026-04-20T10:05:00+09:00",
+                            "order" : {
+                                "id" : 10,
+                                "status" : "paid",
+                                "product" : {
+                                    "id" : 1,
+                                    "name" : "3시간권",
+                                    "product_type" : "time",
+                                    "price" : 6000,
+                                },
+                            },
+                            "created_at" : "2026-04-20T10:05:00+09:00",
+                        },
+                        "meta" : {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401 : UNAUTHORIZED_RESPONSE,
+        404 : NOT_FOUND_RESPONSE,
     },
 )
 class PaymentRetrieveAPIView(APIView):
@@ -205,7 +432,42 @@ class PaymentRetrieveAPIView(APIView):
         OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["active", "expired", "canceled"], required=False),
         OpenApiParameter("pass_kind", str, OpenApiParameter.QUERY, enum=["time", "flat", "fixed", "locker"], required=False),
     ],
-    responses={200: PassReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE},
+    responses={
+        200 : OpenApiResponse(
+            description="패스 목록 조회 성공",
+            examples=[
+                OpenApiExample(
+                    "PassListSuccess",
+                    value={
+                        "data" : [
+                            {
+                                "id" : 1,
+                                "pass_kind" : "time",
+                                "status" : "active",
+                                "start_at" : "2026-04-20T10:05:00+09:00",
+                                "end_at" : None,
+                                "remaining_minutes" : 180,
+                                "fixed_seat_id" : None,
+                                "locker_id" : None,
+                                "product" : {
+                                    "id" : 1,
+                                    "name" : "3시간권",
+                                    "product_type" : "time",
+                                    "price" : 6000,
+                                },
+                                "created_at" : "2026-04-20T10:05:00+09:00",
+                            }
+                        ],
+                        "meta" : {
+                            "count" : 1
+                        },
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401 : UNAUTHORIZED_RESPONSE,
+    },
 )
 class PassAPIView(APIView):
     """
@@ -239,9 +501,37 @@ class PassAPIView(APIView):
     tags=["Orders/Payments/Passes"],
     summary="패스 상세 조회",
     responses={
-        200: PassReadSerializer,
-        401: UNAUTHORIZED_RESPONSE,
-        404: NOT_FOUND_RESPONSE,
+        200 : OpenApiResponse(
+            description="패스 상세 조회 성공",
+            examples=[
+                OpenApiExample(
+                    "PassDetailSuccess",
+                    value={
+                        "data" : {
+                            "id" : 1,
+                            "pass_kind" : "time",
+                            "status" : "active",
+                            "start_at" : "2026-04-20T10:05:00+09:00",
+                            "end_at" : None,
+                            "remaining_minutes" : 180,
+                            "fixed_seat_id" : None,
+                            "locker_id" : None,
+                            "product" : {
+                                "id" : 1,
+                                "name" : "3시간권",
+                                "product_type" : "time",
+                                "price" : 6000,
+                            },
+                            "created_at" : "2026-04-20T10:05:00+09:00",
+                        },
+                        "meta" : {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401 : UNAUTHORIZED_RESPONSE,
+        404 : NOT_FOUND_RESPONSE,
     },
 )
 class PassRetrieveAPIView(APIView):
@@ -265,10 +555,44 @@ class OrderAPIView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
+        operation_id="orders_list",
         tags=["Orders/Payments/Passes"],
         summary="주문 목록 조회",
-        responses={200 : OrderReadSerializer(many=True), 401 : UNAUTHORIZED_RESPONSE},
+        responses={
+            200 : OpenApiResponse(
+                description="주문 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "OrderListSuccess",
+                        value={
+                            "data" : [
+                                {
+                                    "id" : 10,
+                                    "order_no" : "ORD-1234567890ABCDEFGH",
+                                    "status" : "paid",
+                                    "product" : {
+                                        "id" : 1,
+                                        "name" : "3시간권",
+                                        "product_type" : "time",
+                                        "price" : 6000,
+                                    },
+                                    "selected_seat_id" : None,
+                                    "selected_locker_id" : None,
+                                    "created_at" : "2026-04-20T10:00:00+09:00",
+                                }
+                            ],
+                            "meta" : {
+                                "count" : 1
+                            },
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401 : UNAUTHORIZED_RESPONSE,
+        },
     )
+    
     def get(self, request):
         qs = (
             Order.objects
@@ -285,7 +609,22 @@ class OrderAPIView(APIView):
         summary="주문 생성",
         request=OrderCreateSerializer,
         responses={
-            201 : OpenApiResponse(description="주문 생성 성공"),
+            201 : OpenApiResponse(
+                description="주문 생성 성공",
+                examples=[
+                    OpenApiExample(
+                        "OrderCreateSuccess",
+                        value={
+                            "data" : {
+                                "order_id" : 10,
+                                "order_status" : "created",
+                            },
+                            "meta" : {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
             400 : VALIDATION_ERROR_RESPONSE,
             401 : UNAUTHORIZED_RESPONSE,
         },
@@ -314,7 +653,43 @@ class PaymentAPIView(APIView):
     @extend_schema(
         tags=["Orders/Payments/Passes"],
         summary="결제 목록 조회",
-        responses={200 : PaymentReadSerializer(many=True), 401 : UNAUTHORIZED_RESPONSE},
+        responses={
+            200 : OpenApiResponse(
+                description="결제 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "PaymentListSuccess",
+                        value={
+                            "data" : [
+                                {
+                                    "id" : 3,
+                                    "status" : "paid",
+                                    "amount" : 6000,
+                                    "method" : "mock",
+                                    "paid_at" : "2026-04-20T10:05:00+09:00",
+                                    "order" : {
+                                        "id" : 10,
+                                        "status" : "paid",
+                                        "product" : {
+                                            "id" : 1,
+                                            "name" : "3시간권",
+                                            "product_type" : "time",
+                                            "price" : 6000,
+                                        },
+                                    },
+                                    "created_at" : "2026-04-20T10:05:00+09:00",
+                                }
+                            ],
+                            "meta" : {
+                                "count" : 1
+                            },
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401 : UNAUTHORIZED_RESPONSE,
+        },
     )
     def get(self, request) :
         """
@@ -335,9 +710,38 @@ class PaymentAPIView(APIView):
     @extend_schema(
         tags=["Orders/Payments/Passes"],
         summary="결제 생성",
-        request=PaymentCreateSerailizer,
+        request=PaymentCreateSerializer,
         responses={
-            201 : OpenApiResponse(description="결제 성공"),
+            201 : OpenApiResponse(
+                description="결제 성공",
+                examples=[
+                    OpenApiExample(
+                        "PaymentCreateSuccess",
+                        value={
+                            "data" : {
+                                "payment_id" : 3,
+                                "payment_status" : "paid",
+                                "paid_at" : "2026-04-20T10:05:00+09:00",
+                                "order" : {
+                                    "id" : 10,
+                                    "order_status" : "paid",
+                                },
+                                "pass" : {
+                                    "id" : 1,
+                                    "status" : "active",
+                                    "pass_kind" : "time",
+                                    "remaining_minutes" : 180,
+                                    "end_at" : None,
+                                    "fixed_seat_id" : None,
+                                    "locker_id" : None,
+                                },
+                            },
+                            "meta" : {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
             400 : VALIDATION_ERROR_RESPONSE,
             401 : UNAUTHORIZED_RESPONSE,
         },
@@ -348,7 +752,7 @@ class PaymentAPIView(APIView):
         - 요청 검증은 serializer
         - 실제 로직은 service
         """
-        s = PaymentCreateSerailizer(data=request.data, context={"request" : request})
+        s = PaymentCreateSerializer(data=request.data, context={"request" : request})
         s.is_valid(raise_exception=True)
 
         # order = (
@@ -482,6 +886,36 @@ class PaymentAPIView(APIView):
             status_code=201,
         )
 
+@extend_schema(
+    tags=["Admin"],
+    summary="관리자 환불 생성",
+    request=AdminRefundCreateSerializer,
+    responses={
+        201: OpenApiResponse(
+            description="관리자 환불 생성 성공",
+            examples=[
+                OpenApiExample(
+                    "AdminRefundCreateSuccess",
+                    value={
+                        "data": {
+                            "refund_id": 1,
+                            "payment_id": 3,
+                            "admin_user_id": 99,
+                            "amount": 6000,
+                            "reason": "고객 요청",
+                            "refunded_at": "2026-04-20T11:00:00+09:00",
+                        },
+                        "meta": {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        400: VALIDATION_ERROR_RESPONSE,
+        401: UNAUTHORIZED_RESPONSE,
+        403: FORBIDDEN_RESPONSE,
+    },
+)
 class AdminRefundAPIView(AdminAPIView):
     """
     GET  /admin/refunds
@@ -515,6 +949,41 @@ class AdminRefundAPIView(AdminAPIView):
         )
 
 
+@extend_schema(
+    tags=["Admin"],
+    summary="관리자 환불 상세 조회",
+    responses={
+        200: OpenApiResponse(
+            description="관리자 환불 상세 조회 성공",
+            examples=[
+                OpenApiExample(
+                    "AdminRefundDetailSuccess",
+                    value={
+                        "data": {
+                            "id": 1,
+                            "payment": {
+                                "id": 3,
+                                "amount": 6000,
+                            },
+                            "admin_user": {
+                                "id": 99,
+                                "name": "관리자",
+                            },
+                            "amount": 6000,
+                            "reason": "고객 요청",
+                            "refunded_at": "2026-04-20T11:00:00+09:00",
+                        },
+                        "meta": {},
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401: UNAUTHORIZED_RESPONSE,
+        403: FORBIDDEN_RESPONSE,
+        404: NOT_FOUND_RESPONSE,
+    },
+)
 class AdminRefundRetrieveAPIView(AdminAPIView):
     """
     GET /admin/refunds/{id}

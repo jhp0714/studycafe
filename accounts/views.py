@@ -227,7 +227,7 @@ class RefreshAPIView(APIView):
         ),
         401: UNAUTHORIZED_RESPONSE,
         400: VALIDATION_ERROR_RESPONSE,
-        405: FORBIDDEN_RESPONSE,
+        403: FORBIDDEN_RESPONSE
     },
 )
 class LogoutAPIView(APIView):
@@ -331,7 +331,43 @@ class MeAPIView(APIView):
             description="패스 상태 필터",
         ),
     ],
-    responses={200: PassReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE, 400: VALIDATION_ERROR_RESPONSE},
+    responses={
+        200 : OpenApiResponse(
+            description="내 패스 목록 조회 성공",
+            examples=[
+                OpenApiExample(
+                    "MyPassListSuccess",
+                    value={
+                        "data" : [
+                            {
+                                "id" : 1,
+                                "pass_kind" : "time",
+                                "status" : "active",
+                                "start_at" : "2026-04-19T10:00:00+09:00",
+                                "end_at" : None,
+                                "remaining_minutes" : 180,
+                                "fixed_seat_id" : None,
+                                "locker_id" : None,
+                                "product" : {
+                                    "id" : 1,
+                                    "name" : "3시간권",
+                                    "product_type" : "time",
+                                    "price" : 6000
+                                },
+                                "created_at" : "2026-04-19T10:00:00+09:00"
+                            }
+                        ],
+                        "meta" : {
+                            "count" : 1
+                        }
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401 : UNAUTHORIZED_RESPONSE,
+        400 : VALIDATION_ERROR_RESPONSE,
+    },
 )
 class MyPassListAPIView(APIView):
     permission_classes = [IsAuthenticated]
@@ -386,7 +422,40 @@ class MyPassListAPIView(APIView):
             description="페이지 크기",
         ),
     ],
-    responses={200: OrderReadSerializer(many=True), 401: UNAUTHORIZED_RESPONSE, 400: VALIDATION_ERROR_RESPONSE},
+    responses={
+        200 : OpenApiResponse(
+            description="내 주문 목록 조회 성공",
+            examples=[
+                OpenApiExample(
+                    "MyOrderListSuccess",
+                    value={
+                        "data" : [
+                            {
+                                "id" : 10,
+                                "status" : "paid",
+                                "product" : {
+                                    "id" : 1,
+                                    "name" : "3시간권",
+                                    "product_type" : "time",
+                                    "price" : 6000
+                                },
+                                "created_at" : "2026-04-19T10:00:00+09:00"
+                            }
+                        ],
+                        "meta" : {
+                            "page" : 1,
+                            "size" : 20,
+                            "total" : 1,
+                            "total_pages" : 1
+                        }
+                    },
+                    response_only=True,
+                )
+            ],
+        ),
+        401 : UNAUTHORIZED_RESPONSE,
+        400 : VALIDATION_ERROR_RESPONSE,
+    },
 )
 class MyOrderListAPIView(APIView):
     permission_classes = [IsAuthenticated]

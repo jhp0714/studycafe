@@ -105,7 +105,7 @@ class OrderCreateSerializer(serializers.Serializer):
     seat_id = serializers.IntegerField(min_value=1, required=False)
     locker_id = serializers.IntegerField(min_value=1, required=False)
 
-class PaymentCreateSerailizer(serializers.Serializer):
+class PaymentCreateSerializer(serializers.Serializer):
     """
     내 주문, created 상태인지, 이미 결제되었는지인지 확인 가능
     fixed/locker 주문 중 점유가 빠졌는지 체크

@@ -52,7 +52,7 @@ def custom_exception_handler(exc, context):
             {
                 "message": exc.message,
                 "code": exc.code,
-                "detail": exc.detail,
+                "details": exc.detail,
             },
             status=exc.status_code,
         )
@@ -63,7 +63,7 @@ def custom_exception_handler(exc, context):
             {
                 "message": "이미 존재하거나 현재 상태에서는 처리할 수 없습니다.",
                 "code": "CONFLICT",
-                "detail": {},
+                "details": {},
             },
             status=status.HTTP_409_CONFLICT,
         )

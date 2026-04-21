@@ -163,5 +163,5 @@ SPECTACULAR_SETTINGS = {
     "TITLE":"StudyCafe API",
     "DESCRIPTION":"스터디카페 프로젝트 API 문서",
     "VERSION":"1.5.0",
-    "SERVE_INCULDE_SCHEMA":False,
+    "SERVE_INCLUDE_SCHEMA": False,
 }
