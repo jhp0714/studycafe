@@ -3,8 +3,12 @@ from django.db.models import Q
 from django.core.exceptions import ValidationError
 from django.conf import settings
 
+import uuid
+
 User = settings.AUTH_USER_MODEL
 
+def generate_order_no():
+    return f"ORD-{uuid.uuid4().hex[:20]}"
 class Product(models.Model):
     class ProductType(models.TextChoices) :
         TIME = "time", "시간제"  # 일반석 시간제
@@ -48,7 +52,7 @@ class Order(models.Model):
 
     id = models.BigAutoField(primary_key = True)
 
-    order_no = models.CharField(max_length=40, unique=True)
+    order_no = models.CharField(max_length=40, unique=True, default=generate_order_no, editable=False)
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name="orders")
     product = models.ForeignKey(Product, on_delete=models.PROTECT, related_name="orders")
     pass_obj = models.ForeignKey(

@@ -39,7 +39,6 @@ def _get_current_normal_seat_usage_for_update(*, user) -> SeatUsage:
     seat_usage = (
         SeatUsage.objects
         .select_for_update()
-        .select_related("seat","pass_obj","pass_obj__product")
         .filter(user=user, seat__seat_type=Seat.SeatType.NORMAL)
         .first()
     )
@@ -67,7 +66,6 @@ def _get_current_fixed_pass_and_usage_for_update(*, user) -> tuple[Pass, SeatUsa
     pass_obj = (
         Pass.objects
         .select_for_update()
-        .select_related("fixed_seat","product")
         .filter(
             user=user,
             pass_kind=Pass.PassKind.FIXED,
@@ -105,7 +103,6 @@ def _get_current_locker_pass_and_usage_for_update(*, user) -> tuple[Pass, Locker
     pass_obj = (
         Pass.objects
         .select_for_update()
-        .select_related("locker","product")
         .filter(
             user=user,
             pass_kind=Pass.PassKind.LOCKER,

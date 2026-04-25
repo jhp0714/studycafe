@@ -24,7 +24,6 @@ def get_current_normal_seat_usage(*, user) -> SeatUsage:
 def get_active_fixed_pass(*, user) -> Pass:
     pass_obj = (
         Pass.objects
-        .select_related("fixed_seat", "product")
         .filter(
             user=user,
             pass_kind=Pass.PassKind.FIXED,

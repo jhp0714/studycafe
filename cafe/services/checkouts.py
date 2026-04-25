@@ -27,7 +27,6 @@ def _get_current_normal_seat_usage_for_update(*, user) -> SeatUsage:
     seat_usage = (
         SeatUsage.objects
         .select_for_update()
-        .select_related("seat","pass_obj","pass_obj__product")
         .filter(user=user)
         .first()
     )
@@ -205,7 +204,6 @@ def auto_checkout_expired_normal_seats(*, now=None) -> dict:
     expired_usages = list(
         SeatUsage.objects
         .select_for_update()
-        .select_related("seat","pass_obj","pass_obj__product","user")
         .filter(
             seat__seat_type=Seat.SeatType.NORMAL,
             expected_end_at__isnull=False,

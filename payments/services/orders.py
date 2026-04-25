@@ -10,6 +10,8 @@ fixed, locker 첫 구매시 seat/locker 필수
 """
 from __future__ import annotations
 
+import uuid
+
 from django.db import transaction
 
 from cafe.models import Pass, Locker, Seat, SeatUsage, LockerUsage
@@ -17,6 +19,7 @@ from common.exceptions import ConflictBusinessError, NotFoundBusinessError, Vali
 from logs.services import LogAction, LogEntityType, write_log
 from payments.models import Order, Product
 from payments.services.products import is_product_purchasable
+
 
 
 def _get_active_pass(*, user, pass_kind:str) -> Pass | None:

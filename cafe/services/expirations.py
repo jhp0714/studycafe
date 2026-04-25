@@ -106,7 +106,6 @@ def expire_due_passes(*, now=None) -> dict:
     period_passes = list(
         Pass.objects
         .select_for_update()
-        .select_related("user","product")
         .filter(
             status=Pass.Status.ACTIVE,
             pass_kind__in=[
@@ -123,7 +122,6 @@ def expire_due_passes(*, now=None) -> dict:
     time_passes = list(
         Pass.objects
         .select_for_update()
-        .select_related("user","product")
         .filter(
             status=Pass.Status.ACTIVE,
             pass_kind=Pass.PassKind.TIME,

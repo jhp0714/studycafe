@@ -110,23 +110,21 @@ def pay_order(*, user, order_id:int, payment_method:str="mock") -> tuple[Payment
     7. order 상태 paid 변경
     8. 로그
     """
-    expire_due_passes()  # 임시 만료처리 실행
+
+    expire_due_passes()
 
     paid_at = timezone.now()
 
     order = (
         Order.objects
         .select_for_update()
-        .select_related(
-            "user",
-            "product",
-            "selected_seat",
-            "selected_locker",
-            "pass_obj"
-        )
         .filter(id=order_id, user=user)
         .first()
     )
+    # selected_seat = order.selected_seat
+    # selected_locker = order.selected_locker
+    # pass_obj = order.pass_obj
+
     if order is None:
         raise NotFoundBusinessError(
             message="주문을 찾을 수 없습니다.",

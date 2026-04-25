@@ -32,7 +32,6 @@ def _get_active_normal_pass_for_update(*, user) -> Pass:
     flat_pass = (
         Pass.objects
         .select_for_update()
-        .select_related("product")
         .filter(
             user=user,
             pass_kind=Pass.PassKind.FLAT,
@@ -47,7 +46,6 @@ def _get_active_normal_pass_for_update(*, user) -> Pass:
     time_pass = (
         Pass.objects
         .select_for_update()
-        .select_related("product")
         .filter(
             user=user,
             pass_kind=Pass.PassKind.TIME,

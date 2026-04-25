@@ -35,8 +35,7 @@ def ok(data=None, meta=None, status_code=200):
         payload["meta"] = meta
     return Response(payload, status=status_code)
 
-def gen_order_no() -> str:
-    return f"ORD-{uuid.uuid4().hex[:20]}"
+
 
 @extend_schema_view(
     list=extend_schema(
@@ -858,11 +857,34 @@ class PaymentAPIView(APIView):
         #     },
         #     status_code=201,
         # )
+        # payment, order, pass_obj = pay_order(
+        #     user=request.user,
+        #     order_id=s.validated_data["order"].id,
+        #     payment_method=s.validated_data.get("payment_method", "mock")
+        # )
+
+        # 임시
+
         payment, order, pass_obj = pay_order(
             user=request.user,
             order_id=s.validated_data["order"].id,
             payment_method=s.validated_data.get("payment_method", "mock")
         )
+
+        # import traceback
+        #
+        # try :
+        #     payment, order, pass_obj = pay_order(
+        #         user=request.user,
+        #         order_id=s.validated_data["order"].id,
+        #         payment_method=s.validated_data.get("payment_method", "mock"),
+        #     )
+        # except Exception as e :
+        #     print("=== PAYMENT ERROR START ===")
+        #     print(type(e).__name__, str(e))
+        #     traceback.print_exc()
+        #     print("=== PAYMENT ERROR END ===")
+        #     raise
 
         return ok(
             {

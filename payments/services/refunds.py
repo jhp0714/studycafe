@@ -158,12 +158,6 @@ def create_refund(
     payment = (
         Payment.objects
         .select_for_update()
-        .select_related(
-            "order",
-            "order__user",
-            "order__pass_obj",
-            "order__pass_obj__product",
-        )
         .filter(id=payment_id)
         .first()
     )

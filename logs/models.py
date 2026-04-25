@@ -10,7 +10,7 @@ class Log(models.Model):
 
     # 누가 실행했는지
     # 시스템/배치 로그도 남겨야 하므로 nullable 허용
-    actor_user_id = models.ForeignKey(
+    actor_user = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
         related_name="acted_logs",
@@ -20,7 +20,7 @@ class Log(models.Model):
 
     # 누구에게 적용된 동작인지
     # 예: 관리자가 다른 사용자를 강제 퇴실시키는 경우 필요
-    target_user_id = models.ForeignKey(
+    target_user = models.ForeignKey(
         User,
         on_delete=models.PROTECT,
         related_name="targeted_logs",
@@ -55,8 +55,8 @@ class Log(models.Model):
         indexes = [
             models.Index(fields=["entity_type", "entity_id", "created_at"]),
             models.Index(fields=["action", "created_at"]),
-            models.Index(fields=["actor_user_id", "created_at"]),
-            models.Index(fields=["target_user_id", "created_at"]),
+            models.Index(fields=["actor_user", "created_at"]),
+            models.Index(fields=["target_user", "created_at"]),
         ]
 
     def __str__(self):

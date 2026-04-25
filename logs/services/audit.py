@@ -37,8 +37,8 @@ def write_log(
         metadata = {}
 
     return Log.objects.create(
-        actor_user_id=actor_user,
-        target_user_id=target_user,
+        actor_user=actor_user,
+        target_user=target_user,
         action=action,
         entity_type=entity_type,
         entity_id=entity_id,

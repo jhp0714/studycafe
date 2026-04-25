@@ -231,7 +231,7 @@ User 1:N Refund(admin)
 | 필드 | 타입 | 제약/설명 |
 | --- | --- | --- |
 | id | pk |  |
-| actor_user_id | fk(User) | 호출한 user |
+| actor_user | fk(User) | 호출한 user |
 | action | string | check_in, move_seat, refund 등 |
 | entity_type | string | SeatUsage, Pass, Payment 등 |
 | entity_id | int/string | 대상 PK |

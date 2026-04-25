@@ -30,7 +30,6 @@ def get_active_pass_for_update(*, user, pass_kind:str) -> Pass | None:
     return(
         Pass.objects
         .select_for_update()
-        .select_related("fixed_seat","locker","product")
         .filter(
             user=user,
             pass_kind=pass_kind,
@@ -292,7 +291,7 @@ def issue_or_extend_pass(*, order:Order, paid_at=None, actor_user=None) -> tuple
     - active pass 가 없으면 신규 생성, 있으면 연장
     """
     current_time = paid_at or timezone.now()
-    pass_kind = order.product.primary_type
+    pass_kind = order.product.product_type
 
     existing_pass = get_active_pass_for_update(user=order.user, pass_kind=pass_kind)
 

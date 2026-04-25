@@ -22,7 +22,6 @@ def _get_current_normal_seat_usage_for_update(*, user) -> SeatUsage:
     seat_usage = (
         SeatUsage.objects
         .select_for_update()
-        .select_related("seat","pass_obj","pass_obj__product")
         .filter(user=user)
         .first()
     )
