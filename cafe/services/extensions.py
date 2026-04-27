@@ -91,30 +91,7 @@ def _calculate_extendable_end_at(*, pass_obj:Pass,current_expected_end_at,reques
 
         return new_expected_end_at
 
-    if pass_obj.pass_kind == Pass.PassKind.TIME:
-        remaining_minutes = pass_obj.remaining_minutes or 0
-        if remaining_minutes <= 0:
-            raise ConflictBusinessError(
-                message="남은 시간이 없습니다.",
-                code="time_pass_no_remaining_minutes",
-                detail={"pass_id":pass_obj.id}
-            )
 
-        max_end_at_by_remaining = current_expected_end_at + timedelta(minutes=remaining_minutes)
-        new_expected_end_at = min(requested_end_at, max_end_at_by_remaining)
-
-        if new_expected_end_at <= current_expected_end_at:
-            raise ConflictBusinessError(
-                message="더 이상 연장할 수 없습니다.",
-                code="time_extension_not_available",
-                detail={
-                    "pass_id": pass_obj.id,
-                    "remaining_minutes": remaining_minutes,
-                    "current_expected_end_at": current_expected_end_at.isoformat(),
-                },
-            )
-
-        return new_expected_end_at
 
     raise ValidationBusinessError(
         message="일반석 연장에 사용할 수 없는 이용권입니다.",
@@ -138,7 +115,18 @@ def extend_normal_seat_usage(*, user, hours: int) -> SeatUsage:
     seat_usage = _get_current_normal_seat_usage_for_update(user=user)
     pass_obj = seat_usage.pass_obj
 
-    if pass_obj.pass_kind not in (Pass.PassKind.TIME, Pass.PassKind.FLAT):
+    if pass_obj.pass_kind == Pass.PassKind.TIME :
+        raise ConflictBusinessError(
+            message="시간제 이용권은 추가 결제를 통해 연장해야 합니다.",
+            code="time_pass_extend_requires_payment",
+            detail={
+                "pass_id" : pass_obj.id,
+                "pass_kind" : pass_obj.pass_kind,
+                "requires_payment" : True,
+            },
+        )
+
+    if pass_obj.pass_kind != Pass.PassKind.FLAT:
         raise ValidationBusinessError(
             message="일반석 연장에 사용할 수 없는 이용권입니다.",
             code="invalid_extension_pass_kind",
