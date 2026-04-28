@@ -244,7 +244,7 @@ class LogoutAPIView(APIView):
 
         try :
             token = RefreshToken(refresh_token)
-            if token.get("user_id") != request.user.id :
+            if str(token.get("user_id")) != str(request.user.id) :
                 return error(
                     code="FORBIDDEN",
                     message="본인의 refresh_token만 로그아웃할 수 있습니다.",
