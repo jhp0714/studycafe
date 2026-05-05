@@ -1,32 +1,29 @@
-import uuid
-from datetime import timedelta
-
-from django.db import transaction
-from django.utils import timezone
 from django.shortcuts import get_object_or_404
+from django.db.models import Case, When, Value, IntegerField
 
 from rest_framework.views import APIView
 from rest_framework import viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
 from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExample, OpenApiParameter, OpenApiResponse
 
 from common.swagger import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, VALIDATION_ERROR_RESPONSE, NOT_FOUND_RESPONSE
 
-from accounts.permissions import IsAdminRole, AdminModelViewSet, AdminAPIView
+from accounts.permissions import AdminModelViewSet, AdminAPIView
 from .models import Product, Order, Payment, Refund
-from cafe.models import Pass, SeatUsage, LockerUsage
+from cafe.models import Pass
 from .serializers import (
     ProductReadSerializer, AdminProductWriteSerializer,
     OrderCreateSerializer, PaymentCreateSerializer,
     OrderReadSerializer, PaymentReadSerializer, PassReadSerializer,
     AdminRefundReadSerializer, AdminRefundCreateSerializer
 )
-from .services.refunds import create_refund, RefundError
+from .services.refunds import create_refund
 from .services.payments import pay_order
 from .services.orders import create_order
-from .services.products import get_product_purchase_status, build_purchase_availability_context
+from .services.products import build_purchase_availability_context
+from logs.services import LogAction, LogEntityType, write_log
 
 
 def ok(data=None, meta=None, status_code=200):
@@ -71,7 +68,6 @@ def ok(data=None, meta=None, status_code=200):
                     )
                 ],
             ),
-            401 : UNAUTHORIZED_RESPONSE,
         },
     ),
     retrieve=extend_schema(
@@ -112,10 +108,34 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
     GET /products/{id}
     """
     serializer_class = ProductReadSerializer
-    permission_classes = [IsAuthenticated]      # 회원만
+
+    def get_permissions(self) :
+        if self.action == "list" :
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
-        qs = Product.objects.all().order_by("id")
+        qs = (
+            Product.objects
+            .all()
+            .annotate(
+                product_type_order=Case(
+                    When(product_type="time", then=Value(1)),
+                    When(product_type="flat", then=Value(2)),
+                    When(product_type="fixed", then=Value(3)),
+                    When(product_type="locker", then=Value(4)),
+                    default=Value(99),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by(
+                "product_type_order",
+                "duration_hours",
+                "duration_days",
+                "price",
+                "id",
+            )
+        )
         product_type = self.request.query_params.get("product_type")
 
         if product_type:
@@ -301,7 +321,7 @@ class AdminProductViewSet(AdminModelViewSet):
     http_method_names = ["get","post","patch","head","options"]
 
     def get_queryset(self):
-        return Product.objects.all().order_by("id")
+        return Product.objects.all().order_by("name","id")
 
     def list(self, request, *args, **kwargs):
         res = super().list(request, *args, **kwargs)
@@ -313,8 +333,49 @@ class AdminProductViewSet(AdminModelViewSet):
 
     def create(self, request, *args, **kwargs):
         res = super().create(request, *args, **kwargs)
+        product_id = res.data["id"]
+
+        write_log(
+            actor_user=request.user,
+            action=LogAction.PRODUCT_CREATED,
+            entity_type=LogEntityType.PRODUCT,
+            entity_id=product_id,
+            message="관리자 상품 생성",
+            metadata={
+                "after" : dict(res.data),
+            },
+        )
+
         return ok(res.data, status_code=201)
 
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_objects()
+        before = {
+            "scode" : instance.scode,
+            "name":instance.name,
+            "product_type":instance.product_type,
+            "duration_hours":instance.duration_hours,
+            "duration_days":instance.duration_daty,
+            "price":instance.price,
+            "is_active":instance.is_active
+        }
+
+        res = super().partial_update(request, *args, **kwargs)
+
+        write_log(
+            actor_user=request.user,
+            action=LogAction.PRODUCT_UPDATED,
+            entity_type=LogEntityType.PRODUCT,
+            entity_id=instance.id,
+            message="관리자 상품 수정",
+            metadata={
+                "before" : before,
+                "after" : dict(res.data),
+            },
+        )
+
+        return ok(res.data)
 
 
 @extend_schema(
@@ -946,6 +1007,29 @@ class AdminRefundAPIView(AdminAPIView):
     - GET은 환불 목록, payment_id로 필터 가능
     - POST는 환불 생성(전체 환불)
     """
+    def get(self, request):
+        qs = (
+            Refund.objects
+            .select_related(
+                "payment",
+                "payment__order",
+                "payment__odrer__user",
+                "payment__order__product",
+                "admin_user",
+            )
+            .order_by("-refunded_at","id")
+        )
+
+        payment_id = request.query_params.get("payment_id")
+        if payment_id:
+            qs = qs.filter(payment_id=payment_id)
+
+        user_id = request.query_params.get("user_id")
+        if user_id:
+            qs = qs.filter(payment__order__user_id=user_id)
+
+        data = AdminRefundReadSerializer(qs, many=True).data
+        return ok(data, meta={"count":len(data)})
 
     def post(self, request):
         s = AdminRefundCreateSerializer(data=request.data)
@@ -957,6 +1041,7 @@ class AdminRefundAPIView(AdminAPIView):
             amount=s.validated_data.get("amount"),
             reason=s.validated_data.get("reason"),
         )
+
 
         return ok(
             {
@@ -1015,7 +1100,13 @@ class AdminRefundRetrieveAPIView(AdminAPIView):
 
     def get(self, request, refund_id:int):
         refund = get_object_or_404(
-            Refund.objects.select_related("payment","payment__order","admin_user"),
+            Refund.objects.select_related(
+                "payment",
+                "payment__order",
+                "payment__order__user",
+                "payment__order__product",
+                "admin_user"
+            ),
             id=refund_id,
         )
         return ok(AdminRefundReadSerializer(refund).data)

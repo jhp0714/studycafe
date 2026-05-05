@@ -36,6 +36,14 @@ class LogAction:
     BATCH_CLEANUP_RUN = "batch_cleanup_run"
     BATCH_ALL_RUN = "batch_all_run"
 
+    # 관리자 리소스 관리
+    PRODUCT_CREATED = "product_created"
+    PRODUCT_UPDATED = "product_updated"
+    SEAT_CREATED = "seat_created"
+    SEAT_UPDATED = "seat_updated"
+    LOCKER_CREATED = "locker_created"
+    LOCKER_UPDATED = "locker_updated"
+
 
 class LogEntityType:
     ORDER = "order"

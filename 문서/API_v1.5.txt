@@ -10,6 +10,18 @@ v1.5
 
 - Authorization: Bearer <access_token>
 - 역할: USER, ADMIN
+- 별도 표시가 없는 일반 조회 PAI는 인증 없이 호출이 가능핟.
+- 주문, 결제, 이용 내 정보, 관리자 API는 Authorization 헤더가 필요하다.
+- 공개 API
+    - GET /products
+    - GET /seats
+    - GET /lockers
+- 회원 API
+    - Authorization: Bearer <access_token> 필요
+- 관리자 API
+    - Authorization: Bearer <access_token> 필요
+    - is_admin=True 사용자만 접근 가능
+
 
 ### 공통 응답 포맷
 
@@ -255,6 +267,7 @@ v1.5
 ### 상품 목록
 
 - GET /products?is_active=true&product_type=time
+- 인증 : 불필요
 - product_type: time|flat|fixed|locker
 - is_active: true|false
 
@@ -307,6 +320,7 @@ v1.5
 ### 좌석 목록
 
 - GET /seats?seat_type=normal&status=unused&available=true
+- 인증 : 불필요
 - seat_type: normal|fixed
 - status: used|unused (computed; SeatUsage 기반)
 - available: true|false (Seat.available 운영 상태)
@@ -348,6 +362,7 @@ v1.5
 ### 사물함 목록
 
 - GET /lockers?status=unused&available=true
+- 인증 : 불필요
 - status: used|unused (computed; LockerUsage 기반)
 - available: true|false (Locker.available 운영 상태)
 

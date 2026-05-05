@@ -252,7 +252,7 @@ class AdminRefundCreateSerializer(serializers.Serializer):
     - reason : 환불 사유(null 가능)
     """
     payment_id = serializers.IntegerField()
-    amount = serializers.IntegerField(min_value=1)
+    amount = serializers.IntegerField(required=False, min_value=1)
     reason = serializers.CharField(required=False, allow_blank=True, allow_null=True, max_length=256)
 
 
@@ -263,6 +263,8 @@ class AdminRefundReadSerializer(serializers.ModelSerializer):
     """
     payment = serializers.SerializerMethodField()
     admin = serializers.SerializerMethodField()
+    user = serializers.SerializerMethodField()
+    order = serializers.SerializerMethodField()
 
     class Meta:
         model = Refund
@@ -273,6 +275,8 @@ class AdminRefundReadSerializer(serializers.ModelSerializer):
             "refunded_at",
             "created_at",
             "payment",
+            "order",
+            "user",
             "admin",
         ]
 
@@ -285,6 +289,33 @@ class AdminRefundReadSerializer(serializers.ModelSerializer):
             "method":p.method,
             "paid_at":p.paid_at,
             "order_id":p.order_id,
+        }
+
+    def get_order(self, obj: Refund) :
+        order = obj.payment.order
+        product = order.product
+
+        return {
+            "id" : order.id,
+            "order_no" : order.order_no,
+            "status" : order.status,
+            "product" : {
+                "id" : product.id,
+                "name" : product.name,
+                "product_type" : product.product_type,
+                "price" : product.price,
+            },
+        }
+
+    def get_user(self, obj: Refund) :
+        user = obj.payment.order.user
+
+        return {
+            "id" : user.id,
+            "phone" : user.phone,
+            "name" : user.name,
+            "role" : getattr(user, "role", None),
+            "is_admin" : getattr(user, "is_admin", False),
         }
 
     def get_admin(self, obj:Refund):

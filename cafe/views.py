@@ -1,6 +1,6 @@
-from django.db.models import Exists, OuterRef
-from rest_framework import viewsets, status
-from rest_framework.permissions import IsAuthenticated
+from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField
+from rest_framework import viewsets
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -11,8 +11,8 @@ from common.swagger import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, VALIDATION
 from accounts.permissions import IsAdminRole
 from .models import Seat, Locker, SeatUsage, LockerUsage
 from .serializers import (
-    SeatReadSerializer, SeatAdminWriteSerializer,
-    LockerReadSerializer, LockerAdminWriteSerializer,
+    SeatReadSerializer, SeatAdminWriteSerializer, AdminSeatReadSerializer,
+    LockerReadSerializer, LockerAdminWriteSerializer, AdminLockerReadSerializer,
     AdminForceCheckoutSerializer, NormalSeatCheckinSerializer,
     SeatMoveSerializer, LockerMoveSerializer,
     NormalSeatExtendSerializer,
@@ -21,6 +21,7 @@ from .services.checkins import checkin_normal_seat
 from .services.checkouts import checkout_normal_seat, force_checkout_normal_seat
 from .services.moves import move_seat, move_locker
 from .services.extensions import extend_normal_seat_usage
+from logs.services import LogAction, LogEntityType, write_log
 
 def ok(data=None, meta=None, status_code=200):
     payload = {"data": data if data is not None else {}}
@@ -59,7 +60,6 @@ def ok(data=None, meta=None, status_code=200):
                     )
                 ],
             ),
-            401 : UNAUTHORIZED_RESPONSE,
         },
     ),
     retrieve=extend_schema(
@@ -95,11 +95,31 @@ class SeatViewSet(viewsets.ReadOnlyModelViewSet):
     GET /seats?seat_type=normal|fixed&status=used|unused&available=true|false
     """
     serializer_class = SeatReadSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        if self.action == "list":
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         used_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"), )
-        qs = Seat.objects.all().annotate(_is_used=Exists(used_exists)).order_by("id")
+        qs = (
+            Seat.objects.all()
+            .annotate(
+                _is_used=Exists(used_exists),
+                seat_type_order=Case(
+                    When(seat_type="normal",then=Value(1)),
+                    When(seat_type="fixed", then=Value(2)),
+                    default=Value(99),
+                    output_field=IntegerField()
+                )
+            )
+            .order_by(
+                "seat_type_order",
+                "seat_no",
+                "id",
+            )
+        )
 
         seat_type = self.request.query_params.get("seat_type")
         if seat_type:
@@ -156,7 +176,6 @@ class SeatViewSet(viewsets.ReadOnlyModelViewSet):
                     )
                 ],
             ),
-            401: UNAUTHORIZED_RESPONSE,
         },
     ),
     retrieve=extend_schema(
@@ -191,11 +210,15 @@ class LockerViewSet(viewsets.ReadOnlyModelViewSet):
     GET /lockers?status=used|unused&available=true|false
     """
     serializer_class = LockerReadSerializer
-    permission_classes = [IsAuthenticated]
+
+    def get_permissions(self) :
+        if self.action == "list" :
+            return [AllowAny()]
+        return [IsAuthenticated()]
 
     def get_queryset(self):
         used_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"),)
-        qs = Locker.objects.all().annotate(_is_used=Exists(used_exists)).order_by("id")
+        qs = Locker.objects.all().annotate(_is_used=Exists(used_exists)).order_by("locker_no","id")
 
         status_param = self.request.query_params.get("status")
         if status_param == "used":
@@ -344,8 +367,19 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsAdminRole]
     http_method_names = ["get","post","patch","head","options"]
 
+    def get_serializer_class(self):
+        if self.action in ["list","retrieve"]:
+            return AdminSeatReadSerializer
+        return SeatAdminWriteSerializer
+
     def get_queryset(self):
-        return Seat.objects.all().order_by("id")
+        used_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"))
+        return (
+            Seat.objects
+            .all()
+            .annotate(_is_used=Exists(used_exists))
+            .order_by("seat_no","id")
+        )
 
     def list(self, request, *args, **kwargs):
         res = super().list(request, *args, **kwargs)
@@ -357,10 +391,43 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         res = super().create(request, *args, **kwargs)
+        seat_id = res.data["id"]
+
+        write_log(
+            actor_user=request.user,
+            action=LogAction.SEAT_CREATED,
+            entity_type=LogEntityType.SEAT,
+            entity_id=seat_id,
+            message="관리자 좌석 생성",
+            metadata={
+                "after" : dict(res.data),
+            },
+        )
+
         return ok(res.data, status_code=201)
 
     def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        before = {
+            "seat_no": instance.seat_no,
+            "seat_type": instance.seat_type,
+            "available": instance.available,
+        }
+
         res = super().partial_update(request, *args, **kwargs)
+
+        write_log(
+            actor_user=request.user,
+            action=LogAction.SEAT_UPDATED,
+            entity_type=LogEntityType.SEAT,
+            entity_id=instance.id,
+            message="관리자 좌석 수정",
+            metadata={
+                "before": before,
+                "after": dict(res.data),
+            },
+        )
+
         return ok(res.data)
 
 
@@ -486,8 +553,19 @@ class AdminLockerViewSet(viewsets.ModelViewSet):
     http_method_names = ["get","post","patch","head","options"]
 
 
+    def get_serializer_class(self):
+        if self.action in ["list","retrieve"]:
+            return AdminLockerReadSerializer
+        return LockerAdminWriteSerializer
+
     def get_queryset(self) :
-        return Locker.objects.all().order_by("id")
+        used_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"))
+        return (
+            Locker.objects
+            .all()
+            .annotate(_is_used=Exists(used_exists))
+            .order_by("locker_no","id")
+        )
 
     def list(self, request, *args, **kwargs) :
         res = super().list(request, *args, **kwargs)
@@ -499,10 +577,42 @@ class AdminLockerViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs) :
         res = super().create(request, *args, **kwargs)
+        locker_id = res.data["id"]
+
+        write_log(
+            actor_user=request.user,
+            action=LogAction.LOCKER_CREATED,
+            entity_type=LogEntityType.LOCKER,
+            entity_id=locker_id,
+            message="관리자 사물함 생성",
+            metadata={
+                "after" : dict(res.data),
+            },
+        )
+
         return ok(res.data, status_code=201)
 
-    def partial_update(self, request, *args, **kwargs) :
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        before = {
+            "locker_no": instance.locker_no,
+            "available": instance.available,
+        }
+
         res = super().partial_update(request, *args, **kwargs)
+
+        write_log(
+            actor_user=request.user,
+            action=LogAction.LOCKER_UPDATED,
+            entity_type=LogEntityType.LOCKER,
+            entity_id=instance.id,
+            message="관리자 사물함 수정",
+            metadata={
+                "before": before,
+                "after": dict(res.data),
+            },
+        )
+
         return ok(res.data)
 
 
