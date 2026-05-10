@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Seat, Locker
+from .models import Seat, Locker, LockerUsage, SeatUsage
 
 class SeatReadSerializer(serializers.ModelSerializer):
     status = serializers.SerializerMethodField()
