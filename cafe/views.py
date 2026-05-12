@@ -187,6 +187,14 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 description="좌석 ID",
             ),
             OpenApiParameter(
+                "seat_type",
+                str,
+                OpenApiParameter.QUERY,
+                enum=["normal", "fixed"],
+                required=False,
+                description="좌석 타입",
+            ),
+            OpenApiParameter(
                 "status",
                 str,
                 OpenApiParameter.QUERY,
@@ -285,12 +293,11 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         },
     ),
 )
-class AdminSeatViewSet(viewsets.ModelViewSet):
+class AdminSeatViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """
     POST    /admin/seats
     PATCH   /admin/seats/{id}
     GET     /admin/seats
-    GET     /admin/seats/{id}
     """
     serializer_class = SeatAdminWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminRole]
@@ -321,6 +328,10 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
         seat_id = self.request.query_params.get("seat_id")
         if seat_id:
             qs = qs.filter(id=seat_id)
+
+        seat_type = self.request.query_params.get("seat_type")
+        if seat_type:
+            qs = qs.filter(seat_type=seat_type)
 
         status_param = self.request.query_params.get("status")
         if status_param == "used" :
@@ -491,12 +502,11 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
         },
     ),
 )
-class AdminLockerViewSet(viewsets.ModelViewSet):
+class AdminLockerViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """
     POST    /admin/lockers
     PATCH   /admin/lockers/{id}
     GET     /admin/lockers
-    GET     /admin/lockers/{id}
     """
     serializer_class = LockerAdminWriteSerializer
     permission_classes = [IsAuthenticated, IsAdminRole]

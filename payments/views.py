@@ -154,13 +154,21 @@ class ProductViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     list=extend_schema(
         tags=["Admin"],
         summary="관리자 상품 목록 조회",
-parameters=[
+        parameters=[
             OpenApiParameter(
-                "prodcut_id",
+                "product_id",
                 int,
                 OpenApiParameter.QUERY,
                 required=False,
-                description="사물함 ID",
+                description="상품 ID",
+            ),
+            OpenApiParameter(
+                "product_type",
+                str,
+                OpenApiParameter.QUERY,
+                enum=["time", "flat", "fixed", "locker"],
+                required=False,
+                description="상품 타입",
             ),
             OpenApiParameter(
                 "is_active",
@@ -267,7 +275,6 @@ class AdminProductViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins
     POST    /admin/products
     PATCH   /admin/products/{id}
     GET     /admin/products
-    GET     /admin/products/{id}
     """
     permission_classes = [IsAuthenticated, IsAdminRole]
     serializer_class = AdminProductWriteSerializer
@@ -341,7 +348,7 @@ class AdminProductViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins
             "name":instance.name,
             "product_type":instance.product_type,
             "duration_hours":instance.duration_hours,
-            "duration_days":instance.duration_day,
+            "duration_days":instance.duration_days,
             "price":instance.price,
             "is_active":instance.is_active
         }
