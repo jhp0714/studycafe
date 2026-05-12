@@ -1,5 +1,5 @@
 from django.db.models import Exists, OuterRef, Case, When, Value, IntegerField
-from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -62,44 +62,13 @@ def ok(data=None, meta=None, status_code=200):
             ),
         },
     ),
-    retrieve=extend_schema(
-        tags=["Seats/Lockers"],
-        summary="좌석 상세 조회",
-        responses={
-            200 : OpenApiResponse(
-                description="좌석 상세 조회 성공",
-                examples=[
-                    OpenApiExample(
-                        "SeatDetailSuccess",
-                        value={
-                            "data" : {
-                                "id" : 1,
-                                "seat_no" : "N1",
-                                "seat_type" : "normal",
-                                "status" : "unused",
-                                "available" : True,
-                            },
-                            "meta" : {},
-                        },
-                        response_only=True,
-                    )
-                ],
-            ),
-            401 : UNAUTHORIZED_RESPONSE,
-            404 : NOT_FOUND_RESPONSE,
-        },
-    ),
 )
-class SeatViewSet(viewsets.ReadOnlyModelViewSet):
+class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     GET /seats?seat_type=normal|fixed&status=used|unused&available=true|false
     """
     serializer_class = SeatReadSerializer
-
-    def get_permissions(self):
-        if self.action == "list":
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         used_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"), )
@@ -142,9 +111,6 @@ class SeatViewSet(viewsets.ReadOnlyModelViewSet):
         res = super().list(request, *args, **kwargs)
         return ok(res.data)
 
-    def retrieve(self, request, *args, **kwargs):
-        res = super().retrieve(request, *args, **kwargs)
-        return ok(res.data)
 
 
 @extend_schema_view(
@@ -178,43 +144,13 @@ class SeatViewSet(viewsets.ReadOnlyModelViewSet):
             ),
         },
     ),
-    retrieve=extend_schema(
-        tags=["Seats/Lockers"],
-        summary="사물함 상세 조회",
-        responses={
-            200: OpenApiResponse(
-                description="사물함 상세 조회 성공",
-                examples=[
-                    OpenApiExample(
-                        "LockerDetailSuccess",
-                        value={
-                            "data": {
-                                "id": 1,
-                                "locker_no": "L1",
-                                "status": "unused",
-                                "available": True,
-                            },
-                            "meta": {},
-                        },
-                        response_only=True,
-                    )
-                ],
-            ),
-            401: UNAUTHORIZED_RESPONSE,
-            404: NOT_FOUND_RESPONSE,
-        },
-    ),
 )
-class LockerViewSet(viewsets.ReadOnlyModelViewSet):
+class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     GET /lockers?status=used|unused&available=true|false
     """
     serializer_class = LockerReadSerializer
-
-    def get_permissions(self) :
-        if self.action == "list" :
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    permission_classes = [AllowAny]
 
     def get_queryset(self):
         used_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"),)
@@ -236,16 +172,36 @@ class LockerViewSet(viewsets.ReadOnlyModelViewSet):
         res = super().list(request, *args, **kwargs)
         return ok(res.data)
 
-    def retrieve(self, request, *args, **kwargs):
-        res = super().retrieve(request, *args, **kwargs)
-        return ok(res.data)
-
 
 
 @extend_schema_view(
     list=extend_schema(
         tags=["Admin"],
         summary="관리자 좌석 목록 조회",
+        parameters=[
+            OpenApiParameter(
+                "seat_id",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="좌석 ID",
+            ),
+            OpenApiParameter(
+                "status",
+                str,
+                OpenApiParameter.QUERY,
+                enum=["used", "unused"],
+                required=False,
+                description="사용 상태",
+            ),
+            OpenApiParameter(
+                "available",
+                bool,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="사용 가능 여부",
+            ),
+        ],
         responses={
             200: OpenApiResponse(
                 description="관리자 좌석 목록 조회 성공",
@@ -269,33 +225,6 @@ class LockerViewSet(viewsets.ReadOnlyModelViewSet):
             ),
             401: UNAUTHORIZED_RESPONSE,
             403: FORBIDDEN_RESPONSE,
-        },
-    ),
-    retrieve=extend_schema(
-        tags=["Admin"],
-        summary="관리자 좌석 상세 조회",
-        responses={
-            200: OpenApiResponse(
-                description="관리자 좌석 상세 조회 성공",
-                examples=[
-                    OpenApiExample(
-                        "AdminSeatDetailSuccess",
-                        value={
-                            "data": {
-                                "id": 1,
-                                "seat_no": "N1",
-                                "seat_type": "normal",
-                                "available": True,
-                            },
-                            "meta": {},
-                        },
-                        response_only=True,
-                    )
-                ],
-            ),
-            401: UNAUTHORIZED_RESPONSE,
-            403: FORBIDDEN_RESPONSE,
-            404: NOT_FOUND_RESPONSE,
         },
     ),
     create=extend_schema(
@@ -368,26 +297,49 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
     http_method_names = ["get","post","patch","head","options"]
 
     def get_serializer_class(self):
-        if self.action in ["list","retrieve"]:
+        if self.action == "list":
             return AdminSeatReadSerializer
         return SeatAdminWriteSerializer
 
     def get_queryset(self):
         used_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"))
-        return (
+        qs = (
             Seat.objects
             .all()
-            .annotate(_is_used=Exists(used_exists))
-            .order_by("seat_no","id")
+            .annotate(
+                _is_used=Exists(used_exists),
+                seat_type_order=Case(
+                    When(seat_type="normal",then=Value(1)),
+                    When(seat_type="fixed", then=Value(2)),
+                    default=Value(99),
+                    output_field=IntegerField(),
+                ),
+            )
+            .order_by("seat_type_order","seat_no","id")
         )
+
+        seat_id = self.request.query_params.get("seat_id")
+        if seat_id:
+            qs = qs.filter(id=seat_id)
+
+        status_param = self.request.query_params.get("status")
+        if status_param == "used" :
+            qs = qs.filter(_is_used=True)
+        elif status_param == "unused" :
+            qs = qs.filter(_is_used=False)
+
+        available = self.request.query_params.get("available")
+        if available == "true" :
+            qs = qs.filter(_is_used=False, available=True)
+        elif available == "false" :
+            qs = qs.filter(available=False)
+
+        return qs
 
     def list(self, request, *args, **kwargs):
         res = super().list(request, *args, **kwargs)
         return ok(res.data)
 
-    def retrieve(self, request, *args, **kwargs):
-        res = super().retrieve(request, *args, **kwargs)
-        return ok(res.data)
 
     def create(self, request, *args, **kwargs):
         res = super().create(request, *args, **kwargs)
@@ -435,6 +387,30 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
     list=extend_schema(
         tags=["Admin"],
         summary="관리자 사물함 목록 조회",
+        parameters=[
+            OpenApiParameter(
+                "locker_id",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="사물함 ID"
+          ),
+            OpenApiParameter(
+                "status",
+                str,
+                OpenApiParameter.QUERY,
+                enum=["used","unused"],
+                required=False,
+                description="사용 상태",
+            ),
+            OpenApiParameter(
+                "available",
+                bool,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="사용 가능 여부",
+            ),
+        ],
         responses={
             200: OpenApiResponse(
                 description="관리자 사물함 목록 조회 성공",
@@ -457,32 +433,6 @@ class AdminSeatViewSet(viewsets.ModelViewSet):
             ),
             401: UNAUTHORIZED_RESPONSE,
             403: FORBIDDEN_RESPONSE,
-        },
-    ),
-    retrieve=extend_schema(
-        tags=["Admin"],
-        summary="관리자 사물함 상세 조회",
-        responses={
-            200: OpenApiResponse(
-                description="관리자 사물함 상세 조회 성공",
-                examples=[
-                    OpenApiExample(
-                        "AdminLockerDetailSuccess",
-                        value={
-                            "data": {
-                                "id": 1,
-                                "locker_no": "L1",
-                                "available": True,
-                            },
-                            "meta": {},
-                        },
-                        response_only=True,
-                    )
-                ],
-            ),
-            401: UNAUTHORIZED_RESPONSE,
-            403: FORBIDDEN_RESPONSE,
-            404: NOT_FOUND_RESPONSE,
         },
     ),
     create=extend_schema(
@@ -554,26 +504,42 @@ class AdminLockerViewSet(viewsets.ModelViewSet):
 
 
     def get_serializer_class(self):
-        if self.action in ["list","retrieve"]:
+        if self.action == "list":
             return AdminLockerReadSerializer
         return LockerAdminWriteSerializer
 
     def get_queryset(self) :
         used_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"))
-        return (
+
+        qs = (
             Locker.objects
             .all()
             .annotate(_is_used=Exists(used_exists))
-            .order_by("locker_no","id")
+            .order_by("locker_no", "id")
         )
+
+        locker_id = self.request.query_params.get("locker_id")
+        if locker_id :
+            qs = qs.filter(id=locker_id)
+
+        status_param = self.request.query_params.get("status")
+        if status_param == "used" :
+            qs = qs.filter(_is_used=True)
+        elif status_param == "unused" :
+            qs = qs.filter(_is_used=False)
+
+        available = self.request.query_params.get("available")
+        if available == "true" :
+            qs = qs.filter(_is_used=False, available=True)
+        elif available == "false" :
+            qs = qs.filter(available=False)
+
+        return qs
 
     def list(self, request, *args, **kwargs) :
         res = super().list(request, *args, **kwargs)
         return ok(res.data)
 
-    def retrieve(self, request, *args, **kwargs) :
-        res = super().retrieve(request, *args, **kwargs)
-        return ok(res.data)
 
     def create(self, request, *args, **kwargs) :
         res = super().create(request, *args, **kwargs)

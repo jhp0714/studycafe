@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.db.models import Case, When, Value, IntegerField
 
 from rest_framework.views import APIView
-from rest_framework import viewsets
+from rest_framework import viewsets, mixins
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 
@@ -10,7 +10,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiExam
 
 from common.swagger import UNAUTHORIZED_RESPONSE, FORBIDDEN_RESPONSE, VALIDATION_ERROR_RESPONSE, NOT_FOUND_RESPONSE
 
-from accounts.permissions import AdminModelViewSet, AdminAPIView
+from accounts.permissions import AdminModelViewSet, AdminAPIView, IsAdminRole
 from .models import Product, Order, Payment, Refund
 from cafe.models import Pass
 from .serializers import (
@@ -70,49 +70,15 @@ def ok(data=None, meta=None, status_code=200):
             ),
         },
     ),
-    retrieve=extend_schema(
-        tags=["Products"],
-        summary="상품 상세 조회",
-        responses={
-            200 : OpenApiResponse(
-                description="상품 상세 조회 성공",
-                examples=[
-                    OpenApiExample(
-                        "ProductDetailSuccess",
-                        value={
-                            "data" : {
-                                "id" : 1,
-                                "name" : "3시간권",
-                                "product_type" : "time",
-                                "price" : 6000,
-                                "duration_hours" : 3,
-                                "duration_days" : None,
-                                "is_active" : True,
-                                "can_purchase" : True,
-                                "purchase_block_reason" : None,
-                            },
-                            "meta" : {},
-                        },
-                        response_only=True,
-                    )
-                ],
-            ),
-            401 : UNAUTHORIZED_RESPONSE,
-            404 : NOT_FOUND_RESPONSE,
-        },
-    ),
 )
-class ProductViewSet(viewsets.ReadOnlyModelViewSet):
+class ProductViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
     GET /products?available=true&product_type=time|flat|fixed|locker
     GET /products/{id}
     """
-    serializer_class = ProductReadSerializer
+    permission_classes = [AllowAny]
 
-    def get_permissions(self) :
-        if self.action == "list" :
-            return [AllowAny()]
-        return [IsAuthenticated()]
+    serializer_class = ProductReadSerializer
 
     def get_queryset(self):
         qs = (
@@ -170,24 +136,40 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         serializer = self.get_serializer(queryset, many=True, context=context)
         return ok(serializer.data)
 
-    def retrieve(self, request, *args, **kwargs) :
-        instance = self.get_object()
-
-        context = {
-            **self.get_serializer_context(),
-            "product_purchase_context" : self._build_purchase_context(
-                product_types={instance.product_type}
-            ),
-        }
-
-        serializer = self.get_serializer(instance, context=context)
-        return ok(serializer.data)
+    # def retrieve(self, request, *args, **kwargs) :
+    #     instance = self.get_object()
+    #
+    #     context = {
+    #         **self.get_serializer_context(),
+    #         "product_purchase_context" : self._build_purchase_context(
+    #             product_types={instance.product_type}
+    #         ),
+    #     }
+    #
+    #     serializer = self.get_serializer(instance, context=context)
+    #     return ok(serializer.data)
 
 
 @extend_schema_view(
     list=extend_schema(
         tags=["Admin"],
         summary="관리자 상품 목록 조회",
+parameters=[
+            OpenApiParameter(
+                "prodcut_id",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="사물함 ID",
+            ),
+            OpenApiParameter(
+                "is_active",
+                bool,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="사용 가능 여부",
+            ),
+        ],
         responses={
             200: OpenApiResponse(
                 description="관리자 상품 목록 조회 성공",
@@ -214,36 +196,6 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
             ),
             401: UNAUTHORIZED_RESPONSE,
             403: FORBIDDEN_RESPONSE,
-        },
-    ),
-    retrieve=extend_schema(
-        tags=["Admin"],
-        summary="관리자 상품 상세 조회",
-        responses={
-            200: OpenApiResponse(
-                description="관리자 상품 상세 조회 성공",
-                examples=[
-                    OpenApiExample(
-                        "AdminProductDetailSuccess",
-                        value={
-                            "data": {
-                                "id": 1,
-                                "name": "3시간권",
-                                "product_type": "time",
-                                "price": 6000,
-                                "duration_hours": 3,
-                                "duration_days": None,
-                                "is_active": True,
-                            },
-                            "meta": {},
-                        },
-                        response_only=True,
-                    )
-                ],
-            ),
-            401: UNAUTHORIZED_RESPONSE,
-            403: FORBIDDEN_RESPONSE,
-            404: NOT_FOUND_RESPONSE,
         },
     ),
     create=extend_schema(
@@ -310,26 +262,59 @@ class ProductViewSet(viewsets.ReadOnlyModelViewSet):
         },
     ),
 )
-class AdminProductViewSet(AdminModelViewSet):
+class AdminProductViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):
     """
     POST    /admin/products
     PATCH   /admin/products/{id}
     GET     /admin/products
     GET     /admin/products/{id}
     """
+    permission_classes = [IsAuthenticated, IsAdminRole]
     serializer_class = AdminProductWriteSerializer
     http_method_names = ["get","post","patch","head","options"]
 
     def get_queryset(self):
-        return Product.objects.all().order_by("name","id")
+        qs = (
+            Product.objects
+            .all()
+            .annotate(
+                product_type_order = Case(
+                    When(product_type="time",then=Value(1)),
+                    When(product_type="flat", then=Value(2)),
+                    When(product_type="fixed", then=Value(3)),
+                    When(product_type="locker", then=Value(4)),
+                    default=Value(99),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by(
+                "product_type_order",
+                "duration_hours",
+                "price",
+                "id",
+            )
+        )
+
+        product_id = self.request.query_params.get("product_id")
+        if product_id:
+            qs = qs.filter(id=product_id)
+
+        product_type = self.request.query_params.get("product_type")
+        if product_type :
+            qs = qs.filter(product_type=product_type)
+
+        is_active = self.request.query_params.get("is_active")
+        if is_active == "true" :
+            qs = qs.filter(is_active=True)
+        elif is_active == "false":
+            qs = qs.filter(is_active=False)
+
+        return qs
 
     def list(self, request, *args, **kwargs):
         res = super().list(request, *args, **kwargs)
         return ok(res.data)
 
-    def retrieve(self, request, *args, **kwargs):
-        res = super().retrieve(request, *args, **kwargs)
-        return ok(res.data)
 
     def create(self, request, *args, **kwargs):
         res = super().create(request, *args, **kwargs)
@@ -350,13 +335,13 @@ class AdminProductViewSet(AdminModelViewSet):
 
 
     def partial_update(self, request, *args, **kwargs):
-        instance = self.get_objects()
+        instance = self.get_object()
         before = {
             "scode" : instance.scode,
             "name":instance.name,
             "product_type":instance.product_type,
             "duration_hours":instance.duration_hours,
-            "duration_days":instance.duration_daty,
+            "duration_days":instance.duration_day,
             "price":instance.price,
             "is_active":instance.is_active
         }
