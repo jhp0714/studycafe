@@ -961,36 +961,7 @@ class PaymentAPIView(APIView):
             status_code=201,
         )
 
-@extend_schema(
-    tags=["Admin"],
-    summary="관리자 환불 생성",
-    request=AdminRefundCreateSerializer,
-    responses={
-        201: OpenApiResponse(
-            description="관리자 환불 생성 성공",
-            examples=[
-                OpenApiExample(
-                    "AdminRefundCreateSuccess",
-                    value={
-                        "data": {
-                            "refund_id": 1,
-                            "payment_id": 3,
-                            "admin_user_id": 99,
-                            "amount": 6000,
-                            "reason": "고객 요청",
-                            "refunded_at": "2026-04-20T11:00:00+09:00",
-                        },
-                        "meta": {},
-                    },
-                    response_only=True,
-                )
-            ],
-        ),
-        400: VALIDATION_ERROR_RESPONSE,
-        401: UNAUTHORIZED_RESPONSE,
-        403: FORBIDDEN_RESPONSE,
-    },
-)
+
 class AdminRefundAPIView(AdminAPIView):
     """
     GET  /admin/refunds
@@ -999,13 +970,79 @@ class AdminRefundAPIView(AdminAPIView):
     - GET은 환불 목록, payment_id로 필터 가능
     - POST는 환불 생성(전체 환불)
     """
+
+    @extend_schema(
+        tags=["Admin"],
+        summary="관리자 환불 목록 조회",
+        parameters=[
+            OpenApiParameter(
+                "payment_id",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="결제 ID",
+            ),
+            OpenApiParameter(
+                "user_id",
+                int,
+                OpenApiParameter.QUERY,
+                required=False,
+                description="환불 대상 사용자 ID",
+            ),
+        ],
+        responses={
+            200 : OpenApiResponse(
+                description="관리자 환불 목록 조회 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminRefundListSuccess",
+                        value={
+                            "data" : [
+                                {
+                                    "id" : 1,
+                                    "amount" : 6000,
+                                    "reason" : "고객 요청",
+                                    "refunded_at" : "2026-04-20T11:00:00+09:00",
+                                    "payment" : {
+                                        "id" : 3,
+                                        "amount" : 6000,
+                                        "status" : "refunded",
+                                        "method" : "mock",
+                                    },
+                                    "order" : {
+                                        "id" : 10,
+                                        "order_no" : "ORD-1234567890",
+                                        "status" : "paid",
+                                    },
+                                    "user" : {
+                                        "id" : 2,
+                                        "phone" : "01011112222",
+                                        "name" : "테스트유저",
+                                    },
+                                    "admin" : {
+                                        "id" : 1,
+                                        "phone" : "01099998888",
+                                        "name" : "관리자",
+                                    },
+                                }
+                            ],
+                            "meta" : {"count" : 1},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            401 : UNAUTHORIZED_RESPONSE,
+            403 : FORBIDDEN_RESPONSE,
+        },
+    )
     def get(self, request):
         qs = (
             Refund.objects
             .select_related(
                 "payment",
                 "payment__order",
-                "payment__odrer__user",
+                "payment__order__user",
                 "payment__order__product",
                 "admin_user",
             )
@@ -1023,6 +1060,36 @@ class AdminRefundAPIView(AdminAPIView):
         data = AdminRefundReadSerializer(qs, many=True).data
         return ok(data, meta={"count":len(data)})
 
+    @extend_schema(
+        tags=["Admin"],
+        summary="관리자 환불 생성",
+        request=AdminRefundCreateSerializer,
+        responses={
+            201 : OpenApiResponse(
+                description="관리자 환불 생성 성공",
+                examples=[
+                    OpenApiExample(
+                        "AdminRefundCreateSuccess",
+                        value={
+                            "data" : {
+                                "refund_id" : 1,
+                                "payment_id" : 3,
+                                "admin_user_id" : 99,
+                                "amount" : 6000,
+                                "reason" : "고객 요청",
+                                "refunded_at" : "2026-04-20T11:00:00+09:00",
+                            },
+                            "meta" : {},
+                        },
+                        response_only=True,
+                    )
+                ],
+            ),
+            400 : VALIDATION_ERROR_RESPONSE,
+            401 : UNAUTHORIZED_RESPONSE,
+            403 : FORBIDDEN_RESPONSE,
+        },
+    )
     def post(self, request):
         s = AdminRefundCreateSerializer(data=request.data)
         s.is_valid(raise_exception=True)

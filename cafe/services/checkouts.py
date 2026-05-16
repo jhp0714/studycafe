@@ -95,7 +95,7 @@ def _consume_time_pass_minutes(*,pass_obj:Pass,used_minutes:int)->tuple[int,int]
     return before_minutes, after_minutes
 
 
-def _checkout_normal_seat_usage(*,seat_usage:SeatUsage,checked_out_at,action:str,actor_user=None,message:str,) -> dict:
+def _checkout_normal_seat_usage(*,seat_usage:SeatUsage,checked_out_at,action:str,actor_user=None,message:str,extra_metadata:dict|None=None) -> dict:
     """
     일반석 SeatUsage 공통 퇴실 처리
 
@@ -145,6 +145,22 @@ def _checkout_normal_seat_usage(*,seat_usage:SeatUsage,checked_out_at,action:str
 
     seat_usage.delete()
 
+    metadata = {
+        "seat_id" : seat_id,
+        "seat_no" : seat_no,
+        "pass_id" : pass_id,
+        "pass_kind" : pass_kind,
+        "check_in_at" : check_in_at.isoformat(),
+        "checked_out_at" : checked_out_at.isoformat(),
+        "expected_end_at" : expected_end_at.isoformat() if expected_end_at else None,
+        "used_minutes" : used_minutes,
+        "remaining_minutes_before" : remaining_before,
+        "remaining_minutes_after" : remaining_after,
+    }
+
+    if extra_metadata :
+        metadata.update(extra_metadata)
+
     write_log(
         actor_user=actor_user,
         target_user=target_user,
@@ -152,18 +168,7 @@ def _checkout_normal_seat_usage(*,seat_usage:SeatUsage,checked_out_at,action:str
         entity_type=LogEntityType.SEAT_USAGE,
         entity_id=seat_usage_id,
         message=message,
-        metadata={
-            "seat_id":seat_id,
-            "seat_no":seat_no,
-            "pass_id":pass_id,
-            "pass_kind":pass_kind,
-            "check_in_at":check_in_at.isoformat(),
-            "checked_out_at":checked_out_at.isoformat(),
-            "expected_end_at": expected_end_at.isoformat() if expected_end_at else None,
-            "used_minutes":used_minutes,
-            "remaining_minutes_before":remaining_before,
-            "remaining_minutes_after":remaining_after,
-        },
+        metadata=metadata
     )
 
     return {
@@ -267,25 +272,5 @@ def force_checkout_normal_seat(*,admin_user,target_user_id:int,reason:str|None=N
     )
 
     result["reason"] = reason
-
-    write_log(
-        actor_user=admin_user,
-        target_user=target_user,
-        action=LogAction.SEAT_FORCE_CHECKED_OUT,
-        entity_type=LogEntityType.SEAT_USAGE,
-        entity_id=result["seat_usage_id"],
-        message="관리자 강제 퇴실 사유 기록",
-        metadata={
-            "reason" : reason,
-            "seat_id" : result["seat_id"],
-            "seat_no" : result["seat_no"],
-            "pass_id" : result["pass_id"],
-            "pass_kind" : result["pass_kind"],
-            "checked_out_at" : current_time.isoformat(),
-            "used_minutes" : result["used_minutes"],
-            "remaining_minutes_before" : result["remaining_minutes_before"],
-            "remaining_minutes_after" : result["remaining_minutes_after"],
-        },
-    )
 
     return result
