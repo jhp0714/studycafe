@@ -36,7 +36,7 @@ def ok(data=None, meta=None, status_code=200):
         parameters=[
             OpenApiParameter("seat_type", str, OpenApiParameter.QUERY, enum=["normal", "fixed"], required=False),
             OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["used", "unused"], required=False),
-            OpenApiParameter("available", bool, OpenApiParameter.QUERY, required=False),
+            OpenApiParameter("is_active", bool, OpenApiParameter.QUERY, required=False),
         ],
         responses={
             200 : OpenApiResponse(
@@ -51,7 +51,7 @@ def ok(data=None, meta=None, status_code=200):
                                     "seat_no" : "N1",
                                     "seat_type" : "normal",
                                     "status" : "unused",
-                                    "available" : True,
+                                    "is_active" : True,
                                 }
                             ],
                             "meta" : {},
@@ -65,7 +65,7 @@ def ok(data=None, meta=None, status_code=200):
 )
 class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
-    GET /seats?seat_type=normal|fixed&status=used|unused&available=true|false
+    GET /seats?seat_type=normal|fixed&status=used|unused&is_active=true|false
     """
     serializer_class = SeatReadSerializer
     permission_classes = [AllowAny]
@@ -101,9 +101,9 @@ class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             qs = qs.filter(_is_used=False)
 
         # 선택 가능한 좌석
-        available = self.request.query_params.get("available")
-        if available is not None and available == "true":
-            qs = qs.filter(_is_used=False, available=True)
+        is_active = self.request.query_params.get("is_active")
+        if is_active is not None and is_active == "true":
+            qs = qs.filter(_is_used=False, is_active=True)
 
         return qs
 
@@ -119,7 +119,7 @@ class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         summary="사물함 목록 조회",
         parameters=[
             OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["used", "unused"], required=False),
-            OpenApiParameter("available", bool, OpenApiParameter.QUERY, required=False),
+            OpenApiParameter("is_active", bool, OpenApiParameter.QUERY, required=False),
         ],
         responses={
             200: OpenApiResponse(
@@ -133,7 +133,7 @@ class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                                     "id": 1,
                                     "locker_no": "L1",
                                     "status": "unused",
-                                    "available": True,
+                                    "is_active": True,
                                 }
                             ],
                             "meta": {},
@@ -147,7 +147,7 @@ class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 )
 class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
-    GET /lockers?status=used|unused&available=true|false
+    GET /lockers?status=used|unused&is_active=true|false
     """
     serializer_class = LockerReadSerializer
     permission_classes = [AllowAny]
@@ -162,9 +162,9 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         elif status_param == "unused":
             qs = qs.filter(_is_used=False)
 
-        available = self.request.query_params.get("available")
-        if available is not None and available == "true":
-            qs = qs.filter(_is_used=False, available=True)
+        is_active = self.request.query_params.get("is_active")
+        if is_active is not None and is_active == "true":
+            qs = qs.filter(_is_used=False, is_active=True)
 
         return qs
 
@@ -203,7 +203,7 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                 description="사용 상태",
             ),
             OpenApiParameter(
-                "available",
+                "is_active",
                 bool,
                 OpenApiParameter.QUERY,
                 required=False,
@@ -222,7 +222,7 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                                     "id": 1,
                                     "seat_no": "N1",
                                     "seat_type": "normal",
-                                    "available": True,
+                                    "is_active": True,
                                 }
                             ],
                             "meta": {},
@@ -250,7 +250,7 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                                 "id": 11,
                                 "seat_no": "F1",
                                 "seat_type": "fixed",
-                                "available": True,
+                                "is_active": True,
                             },
                             "meta": {},
                         },
@@ -278,7 +278,7 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
                                 "id": 11,
                                 "seat_no": "F1",
                                 "seat_type": "fixed",
-                                "available": False,
+                                "is_active": False,
                             },
                             "meta": {},
                         },
@@ -339,11 +339,11 @@ class AdminSeatViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Up
         elif status_param == "unused" :
             qs = qs.filter(_is_used=False)
 
-        available = self.request.query_params.get("available")
-        if available == "true" :
-            qs = qs.filter(_is_used=False, available=True)
-        elif available == "false" :
-            qs = qs.filter(available=False)
+        is_active = self.request.query_params.get("is_active")
+        if is_active == "true" :
+            qs = qs.filter(_is_used=False, is_active=True)
+        elif is_active == "false" :
+            qs = qs.filter(is_active=False)
 
         return qs
 
@@ -374,7 +374,7 @@ class AdminSeatViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Up
         before = {
             "seat_no": instance.seat_no,
             "seat_type": instance.seat_type,
-            "available": instance.available,
+            "is_active": instance.is_active,
         }
 
         res = super().partial_update(request, *args, **kwargs)
@@ -415,7 +415,7 @@ class AdminSeatViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Up
                 description="사용 상태",
             ),
             OpenApiParameter(
-                "available",
+                "is_active",
                 bool,
                 OpenApiParameter.QUERY,
                 required=False,
@@ -433,7 +433,7 @@ class AdminSeatViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Up
                                 {
                                     "id": 1,
                                     "locker_no": "L1",
-                                    "available": True,
+                                    "is_active": True,
                                 }
                             ],
                             "meta": {},
@@ -460,7 +460,7 @@ class AdminSeatViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Up
                             "data": {
                                 "id": 11,
                                 "locker_no": "L11",
-                                "available": True,
+                                "is_active": True,
                             },
                             "meta": {},
                         },
@@ -487,7 +487,7 @@ class AdminSeatViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.Up
                             "data": {
                                 "id": 11,
                                 "locker_no": "L11",
-                                "available": False,
+                                "is_active": False,
                             },
                             "meta": {},
                         },
@@ -538,11 +538,11 @@ class AdminLockerViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.
         elif status_param == "unused" :
             qs = qs.filter(_is_used=False)
 
-        available = self.request.query_params.get("available")
-        if available == "true" :
-            qs = qs.filter(_is_used=False, available=True)
-        elif available == "false" :
-            qs = qs.filter(available=False)
+        is_active = self.request.query_params.get("is_active")
+        if is_active == "true" :
+            qs = qs.filter(_is_used=False, is_active=True)
+        elif is_active == "false" :
+            qs = qs.filter(is_active=False)
 
         return qs
 
@@ -572,7 +572,7 @@ class AdminLockerViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.
         instance = self.get_object()
         before = {
             "locker_no": instance.locker_no,
-            "available": instance.available,
+            "is_active": instance.is_active,
         }
 
         res = super().partial_update(request, *args, **kwargs)

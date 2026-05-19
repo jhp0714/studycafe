@@ -10,7 +10,7 @@ class SeatReadSerializer(serializers.ModelSerializer):
             "seat_no",
             "seat_type",
             "status",
-            "available"
+            "is_active"
         ]
 
     def get_status(self, obj):
@@ -29,7 +29,7 @@ class AdminSeatReadSerializer(serializers.ModelSerializer):
             "seat_no",
             "seat_type",
             "status",
-            "available",
+            "is_active",
             "current_usage",
         ]
 
@@ -77,7 +77,7 @@ class SeatAdminWriteSerializer(serializers.ModelSerializer):
             "id",
             "seat_no",
             "seat_type",
-            "available"
+            "is_active"
         ]
         read_only_fields = ["id"]
 
@@ -91,7 +91,7 @@ class LockerReadSerializer(serializers.ModelSerializer):
             "id",
             "locker_no",
             "status",
-            "available",
+            "is_active",
         ]
 
     def get_status(self, obj):
@@ -109,7 +109,7 @@ class AdminLockerReadSerializer(serializers.ModelSerializer):
             "id",
             "locker_no",
             "status",
-            "available",
+            "is_active",
             "current_usage",
         ]
 
@@ -157,7 +157,7 @@ class LockerAdminWriteSerializer(serializers.ModelSerializer):
         fields = [
             "id",
             "locker_no",
-            "available",
+            "is_active",
         ]
         read_only_fields = ["id"]
 

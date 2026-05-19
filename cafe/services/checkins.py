@@ -111,7 +111,7 @@ def _assert_checkinable_normal_seat(*, user, seat:Seat) -> None:
             detail={"seat_id":seat.id, "seat_type":seat.seat_type}
         )
 
-    if not seat.available:
+    if not seat.is_activele:
         raise ConflictBusinessError(
             message="사용 불가능한 좌석입니다.",
             code="seat_not_available",
@@ -120,7 +120,7 @@ def _assert_checkinable_normal_seat(*, user, seat:Seat) -> None:
 
     if SeatUsage.objects.filter(user=user).exists():
         raise ConflictBusinessError(
-            message="이미 다른 좌석을 사용 중입니다.",
+            message="이미 좌석을 점유하고 있는 사용자입니다.",
             code="seat_usage_already_exists"
         )
 
