@@ -27,7 +27,7 @@ User 1:N AuditLog(actor)
 | id | pk |  |
 | seat_no | int/string | UNIQUE(표기 번호) |
 | seat_type | enum | normal, fixed |
-| operating_status | enum | available, out_of_service |
+| operating_status | enum | is_active, out_of_service |
 | disabled | bool | 비활성화 여부 |
 | created_at | datetime |  |
 
@@ -43,7 +43,7 @@ Seat 1:N SeatUsage
 | --- | --- | --- |
 | id | pk |  |
 | locker_no | int/string | UNIQUE |
-| operating_status | enum | available, out_of_service |
+| operating_status | enum | is_active, out_of_service |
 | disabled | bool | 비활성화 여부 |
 | created_at | datetime |  |
 

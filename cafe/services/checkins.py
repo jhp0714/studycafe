@@ -114,7 +114,7 @@ def _assert_checkinable_normal_seat(*, user, seat:Seat) -> None:
     if not seat.is_activele:
         raise ConflictBusinessError(
             message="사용 불가능한 좌석입니다.",
-            code="seat_not_available",
+            code="seat_not_is_active",
             detail={"seat_id":seat.id}
         )
 

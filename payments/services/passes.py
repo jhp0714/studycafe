@@ -174,13 +174,13 @@ def _create_new_pass(*, order:Order, paid_at, actor_user=None)->Pass:
         if pass_kind == Pass.PassKind.FIXED:
             raise ConflictBusinessError(
                 message="이미 사용 중인 지정석입니다.",
-                code="fixed_seat_not_available",
+                code="fixed_seat_not_is_active",
                 detail={"seat_id" : order.selected_seat_id},
             )
         if pass_kind == Pass.PassKind.LOCKER:
             raise ConflictBusinessError(
                 message="이미 사용 중인 사물함입니다.",
-                code="locker_not_available",
+                code="locker_not_is_active",
                 detail={"locker_id" : order.selected_locker_id},
             )
         raise
@@ -253,13 +253,13 @@ def _extend_existing_pass(*, order:Order, existing_pass:Pass, paid_at, actor_use
         if existing_pass.pass_kind == Pass.PassKind.FIXED:
             raise ConflictBusinessError(
                 message="이미 사용 중인 지정석입니다.",
-                code="fixed_seat_not_available",
+                code="fixed_seat_not_is_active",
                 detail={"seat_id" : existing_pass.fixed_seat_id},
             )
         if existing_pass.pass_kind == Pass.PassKind.LOCKER :
             raise ConflictBusinessError(
                 message="이미 사용 중인 사물함입니다.",
-                code="locker_not_available",
+                code="locker_not_is_active",
                 detail={"locker_id" : existing_pass.locker_id},
             )
         raise

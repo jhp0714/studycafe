@@ -1,6 +1,6 @@
 v1.3
 product.duration_minutes를 product.duration_hours로 수정
-seat, locker의 disabled을 available로 수정
+seat, locker의 disabled을 is_active로 수정
 seatUsage 의 check_out_at 삭제
 
 # User
@@ -32,7 +32,7 @@ User 1:N AuditLog(actor)
 | id | pk |  |
 | seat_no | int/string | UNIQUE(표기 번호) |
 | seat_type | enum | normal, fixed |
-| available | bool | 비활성화 여부 |
+| is_active | bool | 비활성화 여부 |
 | created_at | datetime |  |
 
 점유는 SeatUsage로 판단
@@ -47,7 +47,7 @@ Seat 1:N SeatUsage
 | --- | --- | --- |
 | id | pk |  |
 | locker_no | int/string | UNIQUE |
-| available | bool | 비활성화 여부 |
+| is_active | bool | 비활성화 여부 |
 | created_at | datetime |  |
 
 ## 관계

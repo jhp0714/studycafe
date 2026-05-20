@@ -219,6 +219,7 @@ class PassReadSerializer(serializers.ModelSerializer):
     - Pass는 user 소유의 데이터
     """
     product = serializers.SerializerMethodField()
+    usage_summary = serializers.SerializerMethodField()
 
     class Meta:
         model = Pass
@@ -231,17 +232,48 @@ class PassReadSerializer(serializers.ModelSerializer):
             "remaining_minutes",
             "fixed_seat_id",
             "locker_id",
-            "product",
+            "usage_summary",
             "created_at",
         ]
 
-    def get_product(self, obj:Pass):
-        return {
-            "id" : obj.product_id,
-            "name" : getattr(obj.product, "name", None),
-            "product_type" : getattr(obj.product, "product_type", None),
-            "price" : getattr(obj.product, "price", None),
-        }
+
+
+    def get_usage_summary(self, obj:Pass):
+        if obj.pass_kind == Pass.PassKind.TIME:
+            total_minutes = obj.remaining_minutes or 0
+
+            return {
+                "type" : "time",
+                "label" : "일반석 시간제",
+                "total_remaining_minutes" : total_minutes,
+                "total_remaining_hours" : total_minutes // 60,
+                "total_remaining_minutes_remainder" : total_minutes % 60,
+            }
+
+        if obj.pass_kind == Pass.PassKind.FLAT:
+            return {
+                "type" : "flat",
+                "label" : "일반석 기간제",
+                "end_at" : obj.end_at,
+            }
+
+        if obj.pass_kind == Pass.PassKind.FIXED:
+            return {
+                "type" : "fixed",
+                "label" : "지정석",
+                "end_at" : obj.end_at,
+                "fixed_seat_id" : obj.fixed_seat_id,
+            }
+
+        if obj.pass_kind == Pass.PassKind.LOCKER :
+            return {
+                "type" : "locker",
+                "label" : "사물함",
+                "end_at" : obj.end_at,
+                "locker_id" : obj.locker_id,
+            }
+
+        return None
 
 
 class AdminRefundCreateSerializer(serializers.Serializer):

@@ -12,7 +12,7 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AddField(
             model_name='seat',
-            name='available2',
+            name='is_active2',
             field=models.BooleanField(default=True),
         ),
     ]

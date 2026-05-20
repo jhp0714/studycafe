@@ -40,7 +40,6 @@ def ok(data=None, meta=None, status_code=200):
         summary="상품 목록 조회",
         parameters=[
             OpenApiParameter("product_type", str, OpenApiParameter.QUERY, enum=["time", "flat", "fixed", "locker"], required=False),
-            OpenApiParameter("is_active", bool, OpenApiParameter.QUERY, required=False),
         ],
         responses={
             200 : OpenApiResponse(
@@ -73,7 +72,7 @@ def ok(data=None, meta=None, status_code=200):
 )
 class ProductViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
-    GET /products?available=true&product_type=time|flat|fixed|locker
+    GET /products?is_active=true&product_type=time|flat|fixed|locker
     GET /products/{id}
     """
     permission_classes = [AllowAny]
@@ -83,7 +82,7 @@ class ProductViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     def get_queryset(self):
         qs = (
             Product.objects
-            .all()
+            .filter(is_active=True)
             .annotate(
                 product_type_order=Case(
                     When(product_type="time", then=Value(1)),
@@ -107,12 +106,6 @@ class ProductViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         if product_type:
             qs = qs.filter(product_type=product_type)
 
-        is_active = self.request.query_params.get("is_active")
-        if is_active is not None:
-            if is_active == "true":
-                qs = qs.filter(is_active=True)
-            elif is_active == "false":
-                qs = qs.filter(is_active=False)
 
         return qs
 
@@ -807,116 +800,7 @@ class PaymentAPIView(APIView):
         s = PaymentCreateSerializer(data=request.data, context={"request" : request})
         s.is_valid(raise_exception=True)
 
-        # order = (
-        #     Order.objects
-        #     .select_for_update()
-        #     .select_related("product", "selected_seat", "selected_locker", "user")
-        #     .get(id=s.validated_data["order"].id)
-        # )
-        #
-        # if hasattr(order, "payment") :
-        #     return ok({"message" : "이미 결제된 주문입니다."}, status_code=400)
-        #
-        # now = timezone.now()
-        # product = order.product
-        # pt = product.product_type
-        #
-        # payment = Payment.objects.create(
-        #     order=order,
-        #     amount=product.price,
-        #     status=Payment.Status.PAID,
-        #     method=s.validated_data.get("payment_method", "mock"),
-        #     paid_at=now,
-        # )
-        #
-        # order.status = Order.Status.PAID
-        # order.save(update_fields=["status"])
-        #
-        # base_end = None
-        #
-        # if pt in ("fixed", "locker") :
-        #     existing = (
-        #         Pass.objects
-        #         .select_for_update()
-        #         .filter(user=order.user, pass_kind=pt, status=Pass.Status.ACTIVE)
-        #         .first()
-        #     )
-        #
-        #     if existing :
-        #         base_end = existing.end_at if existing.end_at and existing.end_at > now else now
-        #
-        #         existing.status = Pass.Status.EXPIRED
-        #         existing.save(update_fields=["status"])
-        #
-        #         if pt == "fixed" :
-        #             SeatUsage.objects.select_for_update().filter(user=order.user).delete()
-        #         else :
-        #             LockerUsage.objects.select_for_update().filter(user=order.user).delete()
-        #
-        # pass_obj = Pass(
-        #     user=order.user,
-        #     product=product,
-        #     order=order,
-        #     pass_kind=pt,
-        #     status=Pass.Status.ACTIVE,
-        #     start_at=now,
-        # )
-        #
-        # if pt == "time" :
-        #     pass_obj.remaining_minutes = (product.duration_hours or 0) * 60
-        # else :
-        #     start_base = base_end if base_end else now
-        #     pass_obj.end_at = start_base + timedelta(days=(product.duration_days or 0))
-        #
-        # if pt == "fixed" :
-        #     pass_obj.fixed_seat = order.selected_seat
-        # elif pt == "locker" :
-        #     pass_obj.locker = order.selected_locker
-        #
-        # pass_obj.full_clean()
-        # pass_obj.save()
-        #
-        # if pt == "fixed" :
-        #     SeatUsage.objects.create(
-        #         user=order.user,
-        #         pass_obj=pass_obj,
-        #         seat=order.selected_seat,
-        #         check_in_at=now,
-        #         expected_end_at=pass_obj.end_at,
-        #     )
-        #
-        # elif pt == "locker" :
-        #     LockerUsage.objects.create(
-        #         user=order.user,
-        #         pass_obj=pass_obj,
-        #         locker=order.selected_locker,
-        #         assign_at=now,
-        #         unassign_at=pass_obj.end_at,
-        #     )
-        #
-        # return ok(
-        #     {
-        #         "payment_id" : payment.id,
-        #         "payment_status" : payment.status,
-        #         "order" : {
-        #             "id" : order.id,
-        #             "status" : order.status,
-        #         },
-        #         "pass" : {
-        #             "id" : pass_obj.id,
-        #             "pass_kind" : pass_obj.pass_kind,
-        #             "status" : pass_obj.status,
-        #         },
-        #     },
-        #     status_code=201,
-        # )
-        # payment, order, pass_obj = pay_order(
-        #     user=request.user,
-        #     order_id=s.validated_data["order"].id,
-        #     payment_method=s.validated_data.get("payment_method", "mock")
-        # )
 
-        # 임시
 
         payment, order, pass_obj = pay_order(
             user=request.user,
@@ -924,20 +808,7 @@ class PaymentAPIView(APIView):
             payment_method=s.validated_data.get("payment_method", "mock")
         )
 
-        # import traceback
-        #
-        # try :
-        #     payment, order, pass_obj = pay_order(
-        #         user=request.user,
-        #         order_id=s.validated_data["order"].id,
-        #         payment_method=s.validated_data.get("payment_method", "mock"),
-        #     )
-        # except Exception as e :
-        #     print("=== PAYMENT ERROR START ===")
-        #     print(type(e).__name__, str(e))
-        #     traceback.print_exc()
-        #     print("=== PAYMENT ERROR END ===")
-        #     raise
+        pass_data = PassReadSerializer(pass_obj).data
 
         return ok(
             {
@@ -948,15 +819,7 @@ class PaymentAPIView(APIView):
                     "id": order.id,
                     "order_status": order.status,
                 },
-                "pass": {
-                    "id": pass_obj.id,
-                    "status": pass_obj.status,
-                    "pass_kind": pass_obj.pass_kind,
-                    "remaining_minutes": pass_obj.remaining_minutes,
-                    "end_at": pass_obj.end_at,
-                    "fixed_seat_id": pass_obj.fixed_seat_id,
-                    "locker_id": pass_obj.locker_id,
-                },
+                "pass": pass_data,
             },
             status_code=201,
         )

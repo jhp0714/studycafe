@@ -73,7 +73,8 @@ class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     def get_queryset(self):
         used_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"), )
         qs = (
-            Seat.objects.all()
+            Seat.objects
+            .filter(is_active=True)
             .annotate(
                 _is_used=Exists(used_exists),
                 seat_type_order=Case(
@@ -100,10 +101,7 @@ class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         elif status_param == "unused":
             qs = qs.filter(_is_used=False)
 
-        # 선택 가능한 좌석
-        is_active = self.request.query_params.get("is_active")
-        if is_active is not None and is_active == "true":
-            qs = qs.filter(_is_used=False, is_active=True)
+
 
         return qs
 
@@ -154,7 +152,7 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     def get_queryset(self):
         used_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"),)
-        qs = Locker.objects.all().annotate(_is_used=Exists(used_exists)).order_by("locker_no","id")
+        qs = Locker.objects.filter(is_active=True).annotate(_is_used=Exists(used_exists)).order_by("locker_no","id")
 
         status_param = self.request.query_params.get("status")
         if status_param == "used":
@@ -162,9 +160,6 @@ class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         elif status_param == "unused":
             qs = qs.filter(_is_used=False)
 
-        is_active = self.request.query_params.get("is_active")
-        if is_active is not None and is_active == "true":
-            qs = qs.filter(_is_used=False, is_active=True)
 
         return qs
 

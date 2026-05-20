@@ -2,7 +2,7 @@
 좌석/사물함 이동
 
 현재 usage 확인
-대상 좌석/사물함 available + unused인지 확인
+대상 좌석/사물함 is_active + unused인지 확인
 일반석 이동시 expcted_end_at 유지
 fixed/locker 이동시 Pass_id와 SeatUsage/LockerUsage_id 동시 변경
 로그 생성
@@ -21,7 +21,7 @@ def _assert_seat_movable(*, seat:Seat) -> None:
     if not seat.is_activele:
         raise ConflictBusinessError(
             message="사용 불가능한 좌석입니다.",
-            code="seat_not_available",
+            code="seat_not_is_active",
             detail={"seat_id":seat.id}
         )
 
@@ -30,7 +30,7 @@ def _assert_locker_movable(*, locker:Locker) -> None:
     if not locker.is_activele:
         raise ConflictBusinessError(
             message="사용 불가능한 사물함입니다.",
-            code="locker_not_available",
+            code="locker_not_is_active",
             detail={"locker_id":locker.id}
         )
 

@@ -126,9 +126,9 @@ seat_type을 normal/fixed로 수정
 
 ### 상품 목록
 
-- GET /products?available=true&product_type=time
+- GET /products?is_active=true&product_type=time
     - product_type : time|flat|fixed|locker
-    - available : true|false
+    - is_active : true|false
 
 ```json
 {
@@ -139,7 +139,7 @@ seat_type을 normal/fixed로 수정
       "product_type": "time",
       "duration_hours": 10,
       "price": 50000,
-      "available": true
+      "is_active": true
     }
   ]
 }
@@ -155,12 +155,12 @@ seat_type을 normal/fixed로 수정
 
 - GET /seats
     - seat_type : normal|fixed
-    - status : available|occupied|out_of_service|disabled
+    - status : is_active|occupied|out_of_service|disabled
 
 ### 사물함 목록
 
 - GET /lockers
-    - status : available|occupied|out_of_service|disabled
+    - status : is_active|occupied|out_of_service|disabled
 
 ## 5. Orders/Payments/Pass
 
@@ -321,7 +321,7 @@ seat_type을 normal/fixed로 수정
 - POST /admin/seats
 
 ```json
-{ "code": "A101", "seat_type": "normal", "status": "available" }
+{ "code": "A101", "seat_type": "normal", "status": "is_active" }
 ```
 
 ### 좌석 상태 변경

@@ -86,10 +86,10 @@ def _validate_selection_for_product(*,user,product:Product, seat_id:int|None,loc
                 detail={"seat_id":selected_seat.id,"seat_type":selected_seat.seat_type},
             )
 
-        if not selected_seat.available:
+        if not selected_seat.is_active:
             raise ConflictBusinessError(
                 message="사용 불가능한 좌석입니다.",
-                code="seat_not_available",
+                code="seat_not_is_active",
                 detail={"seat_id":selected_seat.id}
             )
 
@@ -133,10 +133,10 @@ def _validate_selection_for_product(*,user,product:Product, seat_id:int|None,loc
                 detail={"locker_id":locker_id},
             )
 
-        if not selected_locker.available:
+        if not selected_locker.is_active:
             raise ConflictBusinessError(
                 message="사용 불가능한 사물함입니다.",
-                code="locker_not_available",
+                code="locker_not_is_active",
                 detail={"locker_id":selected_locker.id},
             )
         if LockerUsage.objects.filter(locker=selected_locker).exists() :

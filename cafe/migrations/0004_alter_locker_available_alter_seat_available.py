@@ -12,12 +12,12 @@ class Migration(migrations.Migration):
     operations = [
         migrations.AlterField(
             model_name='locker',
-            name='available',
+            name='is_active',
             field=models.BooleanField(default=True),
         ),
         migrations.AlterField(
             model_name='seat',
-            name='available',
+            name='is_active',
             field=models.BooleanField(default=True),
         ),
     ]

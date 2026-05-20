@@ -319,11 +319,11 @@ v1.5
 
 ### 좌석 목록
 
-- GET /seats?seat_type=normal&status=unused&available=true
+- GET /seats?seat_type=normal&status=unused&is_active=true
 - 인증 : 불필요
 - seat_type: normal|fixed
 - status: used|unused (computed; SeatUsage 기반)
-- available: true|false (Seat.available 운영 상태)
+- is_active: true|false (Seat.is_active 운영 상태)
 
 응답 (200)
 
@@ -335,7 +335,7 @@ v1.5
       "seat_no": "N1",
       "seat_type": "normal",
       "status": "unused",
-      "available": true
+      "is_active": true
     }
   ]
 }
@@ -354,17 +354,17 @@ v1.5
     "seat_no": "N1",
     "seat_type": "normal",
     "status": "unused",
-    "available": true
+    "is_active": true
   }
 }
 ```
 
 ### 사물함 목록
 
-- GET /lockers?status=unused&available=true
+- GET /lockers?status=unused&is_active=true
 - 인증 : 불필요
 - status: used|unused (computed; LockerUsage 기반)
-- available: true|false (Locker.available 운영 상태)
+- is_active: true|false (Locker.is_active 운영 상태)
 
 응답 (200)
 
@@ -375,7 +375,7 @@ v1.5
       "id": 1,
       "locker_no": "L1",
       "status": "unused",
-      "available": true
+      "is_active": true
     }
   ]
 }
@@ -393,7 +393,7 @@ v1.5
     "id": 1,
     "locker_no": "L1",
     "status": "unused",
-    "available": true
+    "is_active": true
   }
 }
 ```
@@ -873,7 +873,7 @@ v1.5
 {
   "seat_no": "N1",
   "seat_type": "normal",
-  "available": true
+  "is_active": true
 }
 ```
 
@@ -885,7 +885,7 @@ v1.5
 
 ```json
 {
-  "available": false
+  "is_active": false
 }
 ```
 
@@ -906,7 +906,7 @@ v1.5
 ```json
 {
   "locker_no": "L1",
-  "available": true
+  "is_active": true
 }
 ```
 
@@ -918,7 +918,7 @@ v1.5
 
 ```json
 {
-  "available": false
+  "is_active": false
 }
 ```
 

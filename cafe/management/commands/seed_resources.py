@@ -10,7 +10,7 @@ class Command(BaseCommand):
             Seat(
                 seat_no=f"N{i:02d}",
                 seat_type=Seat.SeatType.NORMAL,
-                available=True,
+                is_active=True,
             )
             for i in range(1, 61)
         ]
@@ -19,7 +19,7 @@ class Command(BaseCommand):
             Seat(
                 seat_no=f"F{i:02d}",
                 seat_type=Seat.SeatType.FIXED,
-                available=True,
+                is_active=True,
             )
             for i in range(1, 21)
         ]
@@ -27,7 +27,7 @@ class Command(BaseCommand):
         lockers = [
             Locker(
                 locker_no=f"L{i:02d}",
-                available=True,
+                is_active=True,
             )
             for i in range(1, 41)
         ]

@@ -81,7 +81,7 @@ def _calculate_extendable_end_at(*, pass_obj:Pass,current_expected_end_at,reques
         if new_expected_end_at <= current_expected_end_at:
             raise ConflictBusinessError(
                 message="더 이상 연장할 수 없습니다.",
-                code="flat_extension_not_available",
+                code="flat_extension_not_is_active",
                 detail={
                     "pass_id" : pass_obj.id,
                     "pass_end_at" : pass_obj.end_at.isoformat(),

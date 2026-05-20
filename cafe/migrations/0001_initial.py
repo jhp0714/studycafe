@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('locker_no', models.CharField(max_length=20, unique=True)),
-                ('available', models.BooleanField(default=False)),
+                ('is_active', models.BooleanField(default=False)),
                 ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),
@@ -51,7 +51,7 @@ class Migration(migrations.Migration):
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('seat_no', models.CharField(max_length=20, unique=True)),
                 ('seat_type', models.CharField(choices=[('normal', '일반석'), ('fixed', '지정석')], max_length=10)),
-                ('available', models.BooleanField(default=False)),
+                ('is_active', models.BooleanField(default=False)),
                 ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
             ],
         ),

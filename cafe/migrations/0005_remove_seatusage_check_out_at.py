@@ -6,7 +6,7 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('cafe', '0004_alter_locker_available_alter_seat_available'),
+        ('cafe', '0004_alter_locker_is_active_alter_seat_is_active'),
     ]
 
     operations = [

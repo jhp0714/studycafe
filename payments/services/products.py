@@ -23,22 +23,22 @@ def _has_active_pass(*,user,pass_kind:str) -> bool:
     ).exists()
 
 
-def _has_available_fixed_seat() -> bool:
+def _has_is_active_fixed_seat() -> bool:
     occupied_fixed_seat_exists = SeatUsage.objects.filter(seat_id=OuterRef("pk"))
     return (
         Seat.objects
-        .filter(seat_type=Seat.SeatType.FIXED, available=True)
+        .filter(seat_type=Seat.SeatType.FIXED, is_active=True)
         .annotate(_is_used=Exists(occupied_fixed_seat_exists))
         .filter(_is_used=False)
         .exists()
     )
 
 
-def _has_available_locker() -> bool:
+def _has_is_active_locker() -> bool:
     occupied_locker_exists = LockerUsage.objects.filter(locker_id=OuterRef("pk"))
     return (
         Locker.objects
-        .filter(available=True)
+        .filter(is_active=True)
         .annotate(_is_used=Exists(occupied_locker_exists))
         .filter(_is_used=False)
         .exists()
@@ -68,8 +68,8 @@ def build_purchase_availability_context(*, user=None, needed_product_types=None)
 
     return {
         "active_pass_kinds": active_pass_kinds,
-        "has_available_fixed_seat": _has_available_fixed_seat() if needs_fixed else False,
-        "has_available_locker": _has_available_locker() if needs_locker else False,
+        "has_is_active_fixed_seat": _has_is_active_fixed_seat() if needs_fixed else False,
+        "has_is_active_locker": _has_is_active_locker() if needs_locker else False,
     }
 
 
@@ -93,27 +93,27 @@ def is_product_purchasable(*,product:Product,user=None,purchase_context:dict|Non
         if purchase_context is not None :
             if Pass.PassKind.FIXED in active_pass_kinds :
                 return True, None
-            if purchase_context.get("has_available_fixed_seat", False) :
+            if purchase_context.get("has_is_active_fixed_seat", False) :
                 return True, None
         else :
             if _has_active_pass(user=user, pass_kind=Pass.PassKind.FIXED) :
                 return True, None
-            if _has_available_fixed_seat() :
+            if _has_is_active_fixed_seat() :
                 return True, None
-        return False, "fixed_seat_unavailable"
+        return False, "fixed_seat_unis_active"
 
     if product_type == Product.ProductType.LOCKER :
         if purchase_context is not None :
             if Pass.PassKind.LOCKER in active_pass_kinds :
                 return True, None
-            if purchase_context.get("has_available_locker", False) :
+            if purchase_context.get("has_is_active_locker", False) :
                 return True, None
         else :
             if _has_active_pass(user=user, pass_kind=Pass.PassKind.LOCKER) :
                 return True, None
-            if _has_available_locker() :
+            if _has_is_active_locker() :
                 return True, None
-        return False, "locker_unavailable"
+        return False, "locker_unis_active"
 
     return False, "unsupported_product_type"
 
@@ -123,8 +123,8 @@ def get_product_purchase_status(*, product:Product, user=None, purchase_context:
 
     reason_messages = {
         "product_inactive" : "비활성 상품입니다.",
-        "fixed_seat_unavailable" : "현재 선택 가능한 지정석이 없습니다.",
-        "locker_unavailable" : "현재 선택 가능한 사물함이 없습니다.",
+        "fixed_seat_unis_active" : "현재 선택 가능한 지정석이 없습니다.",
+        "locker_unis_active" : "현재 선택 가능한 사물함이 없습니다.",
         "unsupported_product_type" : "지원하지 않는 상품 유형입니다.",
     }
 

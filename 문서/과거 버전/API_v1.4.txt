@@ -151,13 +151,13 @@ v.14
 - GET /seats
     - seat_type : normal|fixed
     - status : used|unused (computed; SeatUsage 기반)
-    - available : true|false (Seat.available 운영상태)
+    - is_active : true|false (Seat.is_active 운영상태)
 
 ### 사물함 목록
 
 - GET /lockers
     - status : used|unused (computed; LockerUsage 기반)
-    - available : true|false (Locker.available 운영상태)
+    - is_active : true|false (Locker.is_active 운영상태)
 
 ## 5. Orders/Payments/Pass
 
@@ -309,7 +309,7 @@ v.14
 - POST /admin/seats
 
 ```json
-{ "seat_no": "N1", "seat_type": "normal", "available":"true" }
+{ "seat_no": "N1", "seat_type": "normal", "is_active":"true" }
 ```
 
 ### 좌석 상태 변경
@@ -317,7 +317,7 @@ v.14
 - PATCH /admin/seats/{seat_id}
 
 ```json
-{ "available": false }
+{ "is_active": false }
 ```
 
 ### 사물함 생성/상태 변경
@@ -327,9 +327,9 @@ v.14
 
 예시)
 - POST /admin/lockers
-{ "locker_no": "L1", "available": true }
+{ "locker_no": "L1", "is_active": true }
 - PATCH /admin/lockers/{locker_id}
-{ "available": false }
+{ "is_active": false }
 
 ### 강제 퇴실
 
@@ -377,6 +377,6 @@ v.14
 # V1.3
 Order.quantity/total_amount 제거
 Pass.status suspended 제거
-Seat/Locker 운영 상태는 Seat/Locker.available(bool)로 관리
+Seat/Locker 운영 상태는 Seat/Locker.is_active(bool)로 관리
 Seat/Locker 점유 상태는 SeatUsage/LockerUsage로 판단하며, 목록 응답의 status(used|unused)는 computed 값product에 duration_days 추가
 좌석 목록과 사물함 목록 status : used|unused 로 수정
