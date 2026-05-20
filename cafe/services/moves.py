@@ -18,7 +18,7 @@ from logs.services import LogAction, LogEntityType, write_log
 
 
 def _assert_seat_movable(*, seat:Seat) -> None:
-    if not seat.is_activele:
+    if not seat.is_active:
         raise ConflictBusinessError(
             message="사용 불가능한 좌석입니다.",
             code="seat_not_is_active",
@@ -27,7 +27,7 @@ def _assert_seat_movable(*, seat:Seat) -> None:
 
 
 def _assert_locker_movable(*, locker:Locker) -> None:
-    if not locker.is_activele:
+    if not locker.is_active:
         raise ConflictBusinessError(
             message="사용 불가능한 사물함입니다.",
             code="locker_not_is_active",
