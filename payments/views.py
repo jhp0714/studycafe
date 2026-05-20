@@ -494,11 +494,12 @@ class PaymentRetrieveAPIView(APIView):
                                 "remaining_minutes" : 180,
                                 "fixed_seat_id" : None,
                                 "locker_id" : None,
-                                "product" : {
-                                    "id" : 1,
-                                    "name" : "3시간권",
-                                    "product_type" : "time",
-                                    "price" : 6000,
+                                "usage_summary": {
+                                    "type": "time",
+                                    "label": "일반석 시간제",
+                                    "total_remaining_minutes": 180,
+                                    "total_remaining_hours": 3,
+                                    "total_remaining_minutes_remainder": 0,
                                 },
                                 "created_at" : "2026-04-20T10:05:00+09:00",
                             }
@@ -561,11 +562,12 @@ class PassAPIView(APIView):
                             "remaining_minutes" : 180,
                             "fixed_seat_id" : None,
                             "locker_id" : None,
-                            "product" : {
-                                "id" : 1,
-                                "name" : "3시간권",
-                                "product_type" : "time",
-                                "price" : 6000,
+                            "usage_summary": {
+                                "type": "time",
+                                "label": "일반석 시간제",
+                                "total_remaining_minutes": 180,
+                                "total_remaining_hours": 3,
+                                "total_remaining_minutes_remainder": 0,
                             },
                             "created_at" : "2026-04-20T10:05:00+09:00",
                         },

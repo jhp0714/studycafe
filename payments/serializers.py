@@ -218,7 +218,6 @@ class PassReadSerializer(serializers.ModelSerializer):
     이용권 조회용 Serializer
     - Pass는 user 소유의 데이터
     """
-    product = serializers.SerializerMethodField()
     usage_summary = serializers.SerializerMethodField()
 
     class Meta:

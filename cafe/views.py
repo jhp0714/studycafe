@@ -36,7 +36,6 @@ def ok(data=None, meta=None, status_code=200):
         parameters=[
             OpenApiParameter("seat_type", str, OpenApiParameter.QUERY, enum=["normal", "fixed"], required=False),
             OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["used", "unused"], required=False),
-            OpenApiParameter("is_active", bool, OpenApiParameter.QUERY, required=False),
         ],
         responses={
             200 : OpenApiResponse(
@@ -65,7 +64,7 @@ def ok(data=None, meta=None, status_code=200):
 )
 class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
-    GET /seats?seat_type=normal|fixed&status=used|unused&is_active=true|false
+    GET /seats?seat_type=normal|fixed&status=used|unused
     """
     serializer_class = SeatReadSerializer
     permission_classes = [AllowAny]
@@ -117,7 +116,6 @@ class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         summary="사물함 목록 조회",
         parameters=[
             OpenApiParameter("status", str, OpenApiParameter.QUERY, enum=["used", "unused"], required=False),
-            OpenApiParameter("is_active", bool, OpenApiParameter.QUERY, required=False),
         ],
         responses={
             200: OpenApiResponse(
@@ -145,7 +143,7 @@ class SeatViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 )
 class LockerViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """
-    GET /lockers?status=used|unused&is_active=true|false
+    GET /lockers?status=used|unused
     """
     serializer_class = LockerReadSerializer
     permission_classes = [AllowAny]
